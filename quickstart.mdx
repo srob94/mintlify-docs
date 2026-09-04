@@ -10,13 +10,13 @@ AgyDesk has you up and running quickly: sign up, choose a plan, and your cloud C
   <Step title="Sign Up and Choose a Plan">
     Go to [agydesk.com](https://agydesk.com) and create your account. During onboarding, select one of the three plans:
 
-    | Plan | Price | Best For |
-    |---|---|---|
-    | **Starter** | $49 / mo | Solo users and explorers |
-    | **Pro** | $129 / mo | Professionals running multiple workflows |
-    | **Agency** | $349 / mo | Teams, client work, and high-volume automation |
+    | Plan | Price | Workstations | Best For |
+    |---|---|---|---|
+    | **Starter** | $49 / mo | 1 | Solo users and explorers |
+    | **Pro** | $129 / mo | 3 | Professionals running multiple workflows |
+    | **Agency** | $349 / mo | 10 | Teams, client work, and high-volume automation |
 
-    All plans include a dedicated cloud Chromium pod with a persistent browser profile and monthly credits for AI operations.
+    All plans include dedicated cloud Chromium pods with persistent browser profiles and monthly credits for AI operations.
   </Step>
   <Step title="Access Your Dashboard">
     After signup, you land on your AgyDesk dashboard. The dashboard is organized into seven tabs:
@@ -26,7 +26,7 @@ AgyDesk has you up and running quickly: sign up, choose a plan, and your cloud C
     - **Extension Manager** — install and manage Chrome extensions on your cloud pod
     - **Integrations Hub** — connect external services
     - **Team & RBAC** — invite members and manage permissions
-    - **Cloud Settings** — configure your pod, choose BYOC infrastructure
+    - **Cloud Settings** — configure your pod and choose BYOC infrastructure
     - **CDP Logs** — inspect Chrome DevTools Protocol events in real time
   </Step>
   <Step title="View Your Live Cloud Browser">
@@ -39,13 +39,17 @@ AgyDesk has you up and running quickly: sign up, choose a plan, and your cloud C
     npm install -g @agentdesk/cli
     ```
 
-    Verify the installation and confirm your pod is reachable:
+    Verify the installation:
 
     ```bash
     agydesk status
     ```
 
-    You should see your pod's CDP endpoint, noVNC URL, and storage paths confirmed as active.
+    The status output confirms your pod's live stream URL, CDP endpoint, and available CLI commands.
+
+    <Note>
+      Run `agydesk browser-status` for a deeper check that confirms your cloud Chromium browser is reachable and returns its protocol version and debugger URL.
+    </Note>
   </Step>
   <Step title="Record Your First Workflow">
     Start a recording session by giving your workflow a name:
@@ -54,9 +58,9 @@ AgyDesk has you up and running quickly: sign up, choose a plan, and your cloud C
     agydesk record my-workflow
     ```
 
-    The CLI connects to your cloud pod's CDP endpoint and begins capturing every click and input. Switch to your dashboard's Live Cloud Stream tab and interact with the browser normally — log in to a site, fill a form, navigate pages. When you are done, return to your terminal and press **Enter** to stop recording.
+    The CLI connects to your cloud pod's CDP endpoint and begins capturing every click and input. Switch to your dashboard's **Live Cloud Stream** tab and interact with the browser normally — log in to a site, fill a form, navigate pages. When you are done, return to your terminal and press **Enter** to stop recording.
 
-    AgyDesk compiles your interactions into a TypeScript daemon worker file at `packages/daemon/src/workers/my-workflow.ts`, ready to run autonomously.
+    AgyDesk compiles your interactions into a TypeScript daemon worker, ready to run autonomously.
   </Step>
   <Step title="Run Your Worker">
     List all available workers to confirm your recording was saved:

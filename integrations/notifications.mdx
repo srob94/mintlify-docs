@@ -56,7 +56,7 @@ When an automation worker encounters a two-factor authentication challenge on a 
 
 ## Sending Notifications from Workers
 
-Use the Slack webhook URL from your pod environment to dispatch formatted alerts directly from any TypeScript daemon worker:
+Once Slack is connected in the Integrations Hub, the webhook URL is automatically available to your workers. The following example dispatches a formatted Block-Kit alert from a TypeScript daemon worker:
 
 ```typescript
 // workers/slack-notifier.ts
@@ -69,9 +69,11 @@ interface LeadBatchResult {
 }
 
 async function notifySlack(result: LeadBatchResult): Promise<void> {
+  // SLACK_WEBHOOK_URL is auto-injected into your pod by AgyDesk from the Integrations Hub.
+  // You do not need to set this value manually in any configuration file.
   const webhookUrl = process.env.SLACK_WEBHOOK_URL;
   if (!webhookUrl) {
-    console.log("[Slack] SLACK_WEBHOOK_URL not set — connect Slack in Integrations Hub.");
+    console.log("[Slack] Webhook URL not configured — connect Slack in the Integrations Hub.");
     return;
   }
 

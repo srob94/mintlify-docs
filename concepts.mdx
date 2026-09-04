@@ -10,12 +10,12 @@ AgyDesk is built on a small set of well-defined primitives. Once you understand 
 
 Your **cloud pod** is a persistent Chromium browser instance running 24/7 on AgyDesk's infrastructure (or your own cloud, if you use BYOC). It is not a screenshot service or a headless stub — it is a full, graphical Chromium browser with a real display, saved profile data, and persistent storage.
 
-Two network interfaces are always available on your pod:
+Every pod exposes two access interfaces, both available from your **Cloud Settings** tab:
 
-| Interface | Port | Purpose |
+| Interface | What It Is | How You Use It |
 |---|---|---|
-| **noVNC stream** | 6080 | Live visual access to your browser from any browser tab |
-| **CDP endpoint** | 9222 | Programmatic control via Chrome DevTools Protocol |
+| **noVNC stream URL** | Live visual access to your browser | Open the link in any browser tab — no download required |
+| **CDP endpoint URL** | Programmatic control via Chrome DevTools Protocol | Connect with Playwright, Puppeteer, or any CDP-compatible library |
 
 Your browser profile — cookies, local storage, installed extensions, and saved passwords — persists between sessions. Log in to a service once and your pod stays authenticated indefinitely.
 
@@ -63,7 +63,7 @@ export class MyWorker {
 - **`stop()`** — clears the interval and cleanly shuts down the worker
 - **`runCycle()`** — the unit of work; one complete automation pass (navigate, interact, extract, report)
 
-Workers live in `packages/daemon/src/workers/` and are executed with `agydesk run <name>`. The AgyDesk daemon supervisor can also load and manage multiple workers simultaneously.
+Workers are executed with `agydesk run <name>`. Use `agydesk workers` to list all workers available in your project.
 
 ## Prompt-to-Bot
 
@@ -81,7 +81,7 @@ The **Workflow Recorder** lets you teach AgyDesk by demonstration rather than by
 When you press **Enter** to finish recording, AgyDesk synthesizes your captured events into a TypeScript daemon worker. The result is a replayable, editable worker that reproduces your exact session steps on demand or on a schedule.
 
 <Accordion title="How the recorder captures interactions">
-  The recorder attaches CDP listeners to the `Input` and `Page` domains. Every `dispatchMouseEvent`, `dispatchKeyEvent`, and `navigate` call is timestamped and stored in memory. At the end of the session, the compiled sequence is passed to the AI synthesis pipeline, which adds error handling, retry logic, and configurable interval support before writing the final `.ts` worker file.
+  The recorder listens to browser events on your cloud pod through the CDP connection. Every click, keystroke, and page navigation is timestamped and stored for the duration of the session. When you end the recording, the captured sequence is passed to the AI synthesis pipeline, which adds error handling, retry logic, and configurable interval support before writing the final worker file.
 </Accordion>
 
 ## Credits

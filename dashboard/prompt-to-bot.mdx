@@ -1,7 +1,7 @@
 ---
 title: "Generate Automation Bots with AI from Your Dashboard"
 sidebarTitle: "Prompt-to-Bot"
-description: "Turn a plain English description into a production-ready TypeScript CDP automation daemon in seconds using the AgyDesk Prompt-to-Bot Engine powered by Gemini 2.5 Flash."
+description: "Turn plain English into a production-ready TypeScript automation worker in seconds using AgyDesk's Prompt-to-Bot Engine powered by Gemini 2.5 Flash."
 ---
 
 The Prompt-to-Bot Engine tab lets you create full automation daemons from a plain English description — no coding required. You describe what you want the bot to do, and AgyDesk uses Gemini 2.5 Flash to write a production-ready TypeScript worker that connects to your cloud Chromium pod via the Chrome DevTools Protocol. The generated worker is saved directly into your workers library and is ready to run immediately.
@@ -93,7 +93,7 @@ async function run() {
 run();
 ```
 
-Workers are written to `packages/daemon/src/workers/<bot-name>-worker.ts` and are immediately available to the `agydesk run` command.
+Generated workers are saved immediately to your workers library and are ready to run with the `agydesk run` command.
 
 <Note>
   Each bot synthesis costs **50 credits**. The credit deduction happens when you click Generate — not when you run the bot. Running a generated worker costs 1 credit per browser step executed.

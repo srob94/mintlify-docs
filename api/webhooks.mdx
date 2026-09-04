@@ -10,7 +10,8 @@ AgyDesk uses Stripe webhooks to automatically provision cloud pods after success
 
 | Stripe Event | Action Taken by AgyDesk |
 |---|---|
-| `checkout.session.completed` | Provisions a new Fly.io cloud pod for the customer and sends a confirmation email with the pod's live stream and CDP URLs |
+| `checkout.session.completed` | Provisions a new cloud pod for the customer and sends a confirmation email with the pod's live stream and CDP URLs |
+| `customer.subscription.updated` | Acknowledges the subscription change — no pod action is taken |
 | `customer.subscription.deleted` | Stops and deprovisions the customer's cloud pod, releasing all associated compute and storage resources |
 
 ## Webhook Security
@@ -23,7 +24,7 @@ Stripe signs every webhook payload with a `Stripe-Signature` header derived from
 
 ## Configuring the Webhook in Stripe
 
-If you are running AgyDesk on your own infrastructure (GCP BYOC or Fly.io BYOC), you must register the webhook endpoint in your Stripe Dashboard and add the signing secret to your environment.
+If you are running AgyDesk on your own infrastructure (BYOC), you must register the webhook endpoint in your Stripe Dashboard and add the signing secret to your environment.
 
 <Steps>
   <Step title="Open the Stripe Webhooks Dashboard">
@@ -42,9 +43,10 @@ If you are running AgyDesk on your own infrastructure (GCP BYOC or Fly.io BYOC),
     If you are self-hosting on a custom domain, replace `agydesk.com` with your own domain.
   </Step>
   <Step title="Select the events to listen for">
-    Under **Select events to listen to**, choose the following two events:
+    Under **Select events to listen to**, choose the following events:
 
     - `checkout.session.completed`
+    - `customer.subscription.updated`
     - `customer.subscription.deleted`
 
     Click **Add events**, then click **Add endpoint** to save.
@@ -53,13 +55,9 @@ If you are running AgyDesk on your own infrastructure (GCP BYOC or Fly.io BYOC),
     Once the endpoint is saved, click on it in the webhooks list. Under **Signing secret**, click **Reveal** and copy the value — it begins with `whsec_`.
   </Step>
   <Step title="Add the signing secret to your environment">
-    Set the signing secret as the `STRIPE_WEBHOOK_SECRET` environment variable in your AgyDesk deployment. For BYOC deployments, add it to your Fly.io secrets or GCP Secret Manager.
+    Set the signing secret as the `STRIPE_WEBHOOK_SECRET` environment variable in your AgyDesk deployment.
 
     ```bash
-    # Fly.io BYOC
-    fly secrets set STRIPE_WEBHOOK_SECRET=whsec_your_signing_secret
-
-    # Local / self-hosted
     STRIPE_WEBHOOK_SECRET=whsec_your_signing_secret
     ```
   </Step>

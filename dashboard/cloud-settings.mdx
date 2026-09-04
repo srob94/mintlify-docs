@@ -1,7 +1,7 @@
 ---
 title: "Configure Your Cloud Infrastructure and BYOC Settings"
 sidebarTitle: "Cloud Settings"
-description: "Choose where your Chromium pod runs — AgyDesk Managed cloud, your own GCP project, or your own Fly.io account — and configure pod specs and BYOC credentials."
+description: "Choose where your Chromium pod runs — AgyDesk Managed, your own GCP project, or your own Fly.io account — and configure pod specs and BYOC credentials."
 ---
 
 The Cloud & BYOC Settings tab controls where your Chromium pod runs — on AgyDesk's managed cloud, your own GCP account, or your own Fly.io account. Bring Your Own Cloud (BYOC) mode is designed for teams with data residency requirements, existing cloud credits, or the need to run pods inside a private VPC. All three modes provision the same persistent Chromium 152 runtime; only the underlying infrastructure changes.
@@ -33,21 +33,10 @@ The Cloud & BYOC Settings tab controls where your Chromium pod runs — on AgyDe
       A JSON service account key with the `roles/compute.instanceAdmin.v1` and `roles/storage.objectAdmin` IAM roles. Paste the full JSON string into the field.
     </ParamField>
 
-    AgyDesk provisions the pod with the following gcloud equivalent:
-
-    ```bash
-    gcloud compute instances create-with-container agydesk-pod \
-      --container-image=us-docker.pkg.dev/YOUR_PROJECT/agentdesk/runtime:latest \
-      --zone=us-central1-a \
-      --machine-type=e2-standard-2 \
-      --boot-disk-size=20GB \
-      --boot-disk-type=pd-balanced
-    ```
-
     For the full GCP BYOC setup walkthrough, see the [BYOC Guide](/billing/byoc).
   </Tab>
   <Tab title="Fly.io BYOC">
-    Run your pod as a Fly Machine inside your own Fly.io organization. AgyDesk uses the Fly Machines REST API (`api.machines.dev/v1`) to create an isolated microVM with a dedicated encrypted NVMe volume mounted at `/data/chrome-profile`.
+    Run your pod as a Fly Machine inside your own Fly.io organization. AgyDesk uses the Fly Machines REST API (`api.machines.dev/v1`) to create an isolated microVM with a dedicated encrypted NVMe volume that persists your browser profile across reboots.
 
     Enter the following credentials in the Fly.io BYOC form:
 
@@ -75,7 +64,7 @@ Each plan provisions a pod with different compute and storage resources:
 | **Pro** ($129/mo) | 4 vCPU | 8 GB | 20 GB |
 | **Agency** ($349/mo) | 8 vCPU | 16 GB | 50 GB |
 
-In GCP BYOC mode, these map to `e2-medium` (Starter), `e2-standard-2` (Pro), and `e2-standard-4` (Agency) machine types. In Fly.io mode, the CPU kind is `shared` for Starter and `performance` for Pro and Agency.
+In Fly.io mode (AgyDesk Managed and Fly.io BYOC), the CPU kind is `shared` for Starter and `performance` for Pro and Agency. In GCP BYOC mode, pods use `e2-medium` (Starter), `e2-standard-2` (Pro), and `e2-standard-4` (Agency) machine types with larger persistent SSD disks.
 
 ## Switching Infrastructure Mode
 
@@ -99,5 +88,5 @@ In GCP BYOC mode, these map to `e2-medium` (Starter), `e2-standard-2` (Pro), and
 </Note>
 
 <Warning>
-  Switching BYOC mode **recreates your pod** on entirely new infrastructure. Your automation workers and configuration are preserved, but **browser profile data** (cookies, saved passwords, extension state stored in `/data/chrome-profile`) may not transfer automatically between providers. Export any critical session data from the old pod before switching. See the [BYOC Guide](/billing/byoc) for a step-by-step profile migration procedure.
+  Switching BYOC mode **recreates your pod** on entirely new infrastructure. Your automation workers and configuration are preserved, but **browser profile data** (cookies, saved passwords, extension state) may not transfer automatically between providers. Export any critical session data from the old pod before switching. See the [BYOC Guide](/billing/byoc) for a step-by-step profile migration procedure.
 </Warning>

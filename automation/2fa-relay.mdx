@@ -1,10 +1,10 @@
 ---
-title: "Handle 2FA Challenges in Automated Workflows"
+title: "Handle Two-Factor Authentication in Automated Workflows"
 sidebarTitle: "2FA Relay"
-description: "AgyDesk's 2FA Relay pauses your bot on a two-factor challenge, alerts you via Slack or Telegram, and resumes the automation once you provide the code."
+description: "AgyDesk's 2FA Relay pauses your bot on a two-factor challenge, notifies you via Slack or Telegram, and resumes the automation once you provide the code."
 ---
 
-When an automation worker encounters a two-factor authentication prompt, it cannot proceed without human input — and simply timing out would break the entire workflow. AgyDesk's 2FA Relay system bridges this gap elegantly: the bot pauses and sends you an alert via Slack or Telegram, you provide the code through the dashboard or directly in the notification channel, and the bot retrieves the resolution and continues exactly where it left off. Your automation stays uninterrupted without ever embedding sensitive codes in worker scripts.
+When an automation worker encounters a two-factor authentication prompt, it cannot proceed without human input — and simply timing out would break the entire workflow. AgyDesk's 2FA Relay system bridges this gap elegantly: the bot pauses and sends you a notification via Slack or Telegram, you provide the code through the dashboard or directly in the notification channel, and the bot retrieves the resolution and continues exactly where it left off. Your automation stays uninterrupted without ever embedding sensitive codes in worker scripts.
 
 ## How It Works
 
@@ -14,23 +14,20 @@ The relay is a lightweight challenge-response loop built on two API endpoints. N
   <Step title="Worker detects a 2FA screen">
     Your worker identifies the 2FA prompt — by checking for a specific input field, page title, or URL pattern — and calls `POST /api/agent/relay-2fa` with `action: "create_challenge"`. AgyDesk stores the challenge keyed by your pod ID and marks it `pending`.
   </Step>
-  <Step title="AgyDesk fires an alert">
-    Immediately after creating the challenge, AgyDesk sends an alert to every notification channel you have configured. If you have a **Slack webhook** set, a message appears in your channel: `🚨 [AgyDesk 2FA Alert] Pod my-pod requires verification: 2FA code needed for linkedin.com`. Telegram delivers the same alert to your configured bot.
-  </Step>
-  <Step title="You receive the alert">
-    The alert arrives on your phone or desktop within seconds via Slack or Telegram. It includes your pod ID, the service that triggered the challenge, and a direct link to your AgyDesk dashboard.
+  <Step title="You receive a notification">
+    AgyDesk immediately sends a notification to every channel you have configured in the Integrations Hub — Slack, Telegram, or both. The alert includes your pod ID, the service that triggered the challenge, and a direct link to your AgyDesk dashboard.
   </Step>
   <Step title="You provide the 2FA code">
-    Open the AgyDesk dashboard and enter the code in the **2FA Relay** panel, or reply directly in the Slack/Telegram thread if your integration supports inbound replies. AgyDesk calls `POST /api/agent/relay-2fa` with `action: "resolve_challenge"` and the code you provided.
+    Open the AgyDesk dashboard and enter the code in the **2FA Relay** panel, or use the link in your notification to go there directly. AgyDesk updates the challenge with the code you provide.
   </Step>
   <Step title="AgyDesk stores the resolution">
-    The challenge status flips from `pending` to `resolved` and the `resolvedCode` field is populated in the server-side challenge store.
+    The challenge status flips from `pending` to `resolved` and the `resolvedCode` field is populated.
   </Step>
   <Step title="Worker retrieves the code">
     While waiting, your worker polls `GET /api/agent/relay-2fa?podId=<your-pod-id>` every 5 seconds. Once the challenge status is `resolved`, the response includes `challenge.resolvedCode`.
   </Step>
   <Step title="Worker enters the code and continues">
-    The worker types the retrieved code into the 2FA input field using a CDP `Runtime.evaluate` call, submits the form, and continues the automation from where it paused.
+    The worker types the retrieved code into the 2FA input field, submits the form, and continues the automation from where it paused.
   </Step>
 </Steps>
 
@@ -64,14 +61,17 @@ Call this endpoint when your worker detects a 2FA prompt. The pod ID should be y
 <ParamField body="action" type="string" required>
   Must be `"create_challenge"`.
 </ParamField>
+<ParamField body="type" type="string">
+  The type of 2FA challenge, e.g. `"sms_2fa"` or `"totp"`. Defaults to `"sms_2fa"`.
+</ParamField>
 <ParamField body="service" type="string">
-  Human-readable name of the service that triggered the challenge, e.g. `"linkedin"` or `"gmail"`. Included in the alert message.
+  Human-readable name of the service that triggered the challenge, e.g. `"linkedin"` or `"gmail"`. Included in the notification message.
 </ParamField>
 <ParamField body="message" type="string">
-  Optional custom message to include in the alert, e.g. `"SMS code required for LinkedIn login"`.
+  Optional custom message to include in the notification, e.g. `"SMS code required for LinkedIn login"`.
 </ParamField>
 <ParamField body="screenshotUrl" type="string">
-  Optional URL of a screenshot of the 2FA screen, attached to the Slack notification for context.
+  Optional URL of a screenshot of the 2FA screen, attached to the notification for context.
 </ParamField>
 
 ```bash
@@ -90,6 +90,39 @@ curl -X POST https://agydesk.com/api/agent/relay-2fa \
   "success": true,
   "status": "challenge_created",
   "podId": "my-pod"
+}
+```
+
+### Resolve a Challenge
+
+Call this endpoint to supply the 2FA code once you have it — for example, from a custom integration or script. The dashboard handles this for you automatically when you enter a code in the **2FA Relay** panel.
+
+<ParamField body="podId" type="string" required>
+  The pod ID of the challenge to resolve.
+</ParamField>
+<ParamField body="action" type="string" required>
+  Must be `"resolve_challenge"`.
+</ParamField>
+<ParamField body="code" type="string" required>
+  The 2FA code to deliver to the waiting worker.
+</ParamField>
+
+```bash
+curl -X POST https://agydesk.com/api/agent/relay-2fa \
+  -H "Content-Type: application/json" \
+  -d '{
+    "podId": "my-pod",
+    "action": "resolve_challenge",
+    "code": "847291"
+  }'
+```
+
+```json
+{
+  "success": true,
+  "status": "resolved",
+  "podId": "my-pod",
+  "code": "847291"
 }
 ```
 
@@ -119,8 +152,6 @@ GET https://agydesk.com/api/agent/relay-2fa?podId=my-pod
 Integrate the relay into any daemon worker with a detect-pause-resume pattern. Add this logic inside your `runCycle()` method wherever a 2FA screen may appear.
 
 ```typescript
-import * as http from "http";
-
 const POD_ID = "my-pod"; // Replace with your actual pod ID from Cloud Settings
 
 /** Send a CDP command (see full worker pattern in Daemon Workers guide) */
@@ -141,11 +172,11 @@ async function is2FAPage(wsUrl: string): Promise<boolean> {
   return result?.result?.value === true;
 }
 
-/** Pause the worker, alert via Slack/Telegram, and wait for human resolution */
+/** Pause the worker, send a notification, and wait for human resolution */
 async function handle2FA(wsUrl: string): Promise<string> {
   console.log("🚨 [2FA Relay] 2FA screen detected — creating challenge...");
 
-  // 1. Create the challenge and trigger notifications
+  // 1. Create the challenge — AgyDesk notifies you via Slack/Telegram
   await fetch("https://agydesk.com/api/agent/relay-2fa", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

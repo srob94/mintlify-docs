@@ -1,10 +1,10 @@
 ---
-title: "Building and Running Automation Daemon Workers"
+title: "Daemon Workers: Build and Run 24/7 Automation Scripts"
 sidebarTitle: "Daemon Workers"
-description: "Persistent TypeScript classes that run automation cycles on your cloud Chromium pod on a configurable interval, supervised by the AgyDesk daemon process."
+description: "Persistent TypeScript classes that run automation cycles on your cloud Chromium pod on a configurable interval, managed by the AgyDesk daemon supervisor."
 ---
 
-Daemon workers are persistent TypeScript classes that run automation cycles on your cloud Chromium pod. Each worker connects to your pod's Chromium instance via the Chrome DevTools Protocol (CDP), performs its assigned task — scraping data, monitoring prices, scouting job listings — and then sleeps until the next interval. They run on a configurable schedule (every 30 seconds, every 5 minutes, or once daily) and are managed by the AgyDesk daemon supervisor, which monitors Chromium health and auto-registers any new worker files it finds in the `packages/daemon/src/workers/` directory.
+Daemon workers are persistent TypeScript classes that run automation cycles on your cloud Chromium pod. Each worker connects to your pod's Chromium instance via the Chrome DevTools Protocol (CDP), performs its assigned task — scraping data, monitoring prices, scouting job listings — and then sleeps until the next interval. They run on a configurable schedule (every 30 seconds, every 5 minutes, or once daily) and are managed by the AgyDesk daemon supervisor, which monitors Chromium health and auto-registers any new worker files you add.
 
 ## Worker Structure
 
@@ -27,9 +27,9 @@ export class MyWorker {
     this.cdpPort = cdpPort;
     // Writes to the persistent volume when running inside the pod,
     // or a local data/ folder when running locally.
-    const dockerExport = "/data/chrome-profile/exports/my-worker.json";
-    const localExport  = path.resolve(process.cwd(), "data/exports/my-worker.json");
-    this.exportPath = fs.existsSync("/data/chrome-profile") ? dockerExport : localExport;
+    const podExport  = "/data/chrome-profile/exports/my-worker.json";
+    const localExport = path.resolve(process.cwd(), "data/exports/my-worker.json");
+    this.exportPath = fs.existsSync("/data/chrome-profile") ? podExport : localExport;
   }
 
   private sleep(ms: number) {
@@ -135,11 +135,7 @@ You have three paths to get a worker running:
 
     <Steps>
       <Step title="Create the worker file">
-        Add a new `.ts` file to `packages/daemon/src/workers/`. Name it with a `-worker.ts` suffix so the daemon supervisor auto-registers it.
-
-        ```bash
-        touch packages/daemon/src/workers/my-worker.ts
-        ```
+        Create a new `.ts` file for your worker. Name it with a kebab-case identifier — AgyDesk will use this name when you run `agydesk run <name>`.
       </Step>
       <Step title="Implement the class">
         Copy the class pattern from the **Worker Structure** section above. Update the constructor's `exportPath`, replace the `runCycle()` body with your CDP automation logic, and adjust the default interval in `start()`.
@@ -167,7 +163,7 @@ You have three paths to get a worker running:
 
 <Steps>
   <Step title="List available workers">
-    See every `.ts` file the daemon supervisor has registered:
+    See every worker the daemon supervisor has registered:
 
     ```bash
     agydesk workers
@@ -175,9 +171,9 @@ You have three paths to get a worker running:
 
     ```
     🤖 [AgyDesk Active 24/7 Worker Daemons]:
-       1. 📄 amazon-price-watcher-worker.ts -> packages/daemon/src/workers/amazon-price-watcher-worker.ts
-       2. 📄 catalog-price-tracker-worker.ts -> packages/daemon/src/workers/catalog-price-tracker-worker.ts
-       3. 📄 remote-job-scout-worker.ts     -> packages/daemon/src/workers/remote-job-scout-worker.ts
+       1. 📄 amazon-price-watcher-worker.ts
+       2. 📄 catalog-price-tracker-worker.ts
+       3. 📄 remote-job-scout-worker.ts
 
     ⚡ Run any worker with: agydesk run <name>
     ```
@@ -215,7 +211,7 @@ AgyDesk ships three ready-to-run example workers you can start immediately or us
 </CardGroup>
 
 <Note>
-  Workers are plain TypeScript files. The CLI uses **Bun** to execute them (`bun run <file>`). If Bun is not installed, you can run workers directly with `ts-node packages/daemon/src/workers/<name>-worker.ts` as a fallback.
+  Workers are plain TypeScript files. The CLI uses **Bun** to execute them. If Bun is not installed, install it from [bun.sh](https://bun.sh) or use `ts-node` as a fallback.
 </Note>
 
 <Tip>

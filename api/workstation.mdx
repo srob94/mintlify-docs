@@ -14,7 +14,7 @@ Check whether your cloud Chromium pod is online and retrieve its CDP connection 
 
 ```bash
 curl -s https://agydesk.com/api/workstation/status \
-  -H "Authorization: Bearer <your-api-token>"
+  -H "Authorization: Bearer <your-session-token>"
 ```
 
 **Response — online**
@@ -66,7 +66,7 @@ Start your cloud workstation pod. Call this endpoint when the pod is stopped and
 
 ```bash
 curl -s -X POST https://agydesk.com/api/workstation/start \
-  -H "Authorization: Bearer <your-api-token>"
+  -H "Authorization: Bearer <your-session-token>"
 ```
 
 **Response**
@@ -78,6 +78,15 @@ curl -s -X POST https://agydesk.com/api/workstation/start \
 }
 ```
 
+**Error response (500)**
+
+```json
+{
+  "status": "error",
+  "message": "Failed to start workstation"
+}
+```
+
 ---
 
 ## POST /api/workstation/stop
@@ -86,7 +95,7 @@ Stop your cloud workstation pod. Use this to conserve resources when no automate
 
 ```bash
 curl -s -X POST https://agydesk.com/api/workstation/stop \
-  -H "Authorization: Bearer <your-api-token>"
+  -H "Authorization: Bearer <your-session-token>"
 ```
 
 **Response**
@@ -98,6 +107,15 @@ curl -s -X POST https://agydesk.com/api/workstation/stop \
 }
 ```
 
+**Error response (500)**
+
+```json
+{
+  "status": "error",
+  "message": "Failed to stop workstation"
+}
+```
+
 ---
 
 ## POST /api/workstation/reboot
@@ -106,7 +124,7 @@ Restart your cloud workstation pod. Use this to recover from a frozen browser se
 
 ```bash
 curl -s -X POST https://agydesk.com/api/workstation/reboot \
-  -H "Authorization: Bearer <your-api-token>"
+  -H "Authorization: Bearer <your-session-token>"
 ```
 
 **Response**
@@ -115,6 +133,15 @@ curl -s -X POST https://agydesk.com/api/workstation/reboot \
 {
   "status": "restarting",
   "message": "Workstation rebooting…"
+}
+```
+
+**Error response (500)**
+
+```json
+{
+  "status": "error",
+  "message": "Failed to reboot workstation"
 }
 ```
 

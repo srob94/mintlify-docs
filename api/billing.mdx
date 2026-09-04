@@ -1,5 +1,5 @@
 ---
-title: "Billing API: Create Subscription and Credit Checkout Sessions"
+title: "Billing API: Subscription and Credit Checkout Sessions"
 sidebarTitle: "Billing"
 description: "Create Stripe Checkout sessions for AgyDesk subscriptions and credit packs, then redirect users to complete payment securely on Stripe-hosted pages."
 ---
@@ -22,27 +22,27 @@ Create a Stripe subscription checkout session for one of the three AgyDesk plans
 
 **Request body**
 
-<ParamField body="planId" type="string" required>
-  The plan to subscribe to. Must be `"starter"`, `"pro"`, or `"agency"`.
+<ParamField body="planId" type="string">
+  The plan to subscribe to. Must be `"starter"`, `"pro"`, or `"agency"`. Defaults to `"pro"` if omitted.
 </ParamField>
 
 <ParamField body="customerEmail" type="string">
   Pre-fill the customer's email address on the Stripe Checkout page. If omitted, Stripe prompts the customer to enter their email.
 </ParamField>
 
-<ParamField body="successUrl" type="string" required>
-  The URL Stripe redirects the customer to after a successful payment. You can include `{CHECKOUT_SESSION_ID}` as a placeholder and Stripe will substitute the session ID.
+<ParamField body="successUrl" type="string">
+  The URL Stripe redirects the customer to after a successful payment. You can include `{CHECKOUT_SESSION_ID}` as a placeholder and Stripe will substitute the session ID. Defaults to your dashboard URL if omitted.
 </ParamField>
 
-<ParamField body="cancelUrl" type="string" required>
-  The URL Stripe redirects the customer to if they abandon the checkout page.
+<ParamField body="cancelUrl" type="string">
+  The URL Stripe redirects the customer to if they abandon the checkout page. Defaults to your pricing page if omitted.
 </ParamField>
 
 **Example request**
 
 ```bash
 curl -s -X POST https://agydesk.com/api/checkout \
-  -H "Authorization: Bearer <your-api-token>" \
+  -H "Authorization: Bearer <your-session-token>" \
   -H "Content-Type: application/json" \
   -d '{
     "planId": "pro",
@@ -61,7 +61,17 @@ curl -s -X POST https://agydesk.com/api/checkout \
   "plan": {
     "id": "pro",
     "name": "Pro",
-    "price": 129
+    "price": 129,
+    "interval": "month",
+    "description": "For high-performing agencies, growth teams & automated scrapers.",
+    "features": ["3 Dedicated 24/7 Cloud Workstations", "..."],
+    "specs": {
+      "workstations": 3,
+      "ramGb": 8,
+      "cpuCores": 4,
+      "aiRateLimit": "5,000 requests/day",
+      "multiplayerSeats": 5
+    }
   }
 }
 ```
@@ -72,6 +82,10 @@ curl -s -X POST https://agydesk.com/api/checkout \
 
 <ResponseField name="sessionId" type="string">
   The Stripe Checkout session ID. Store this to correlate the payment event with the customer in your own system.
+</ResponseField>
+
+<ResponseField name="plan" type="object">
+  The full plan object for the selected plan, including `id`, `name`, `price`, `interval`, `features`, and `specs`.
 </ResponseField>
 
 ---
@@ -90,27 +104,27 @@ Create a one-time Stripe Checkout session for a credit pack purchase. Credits ar
 
 **Request body**
 
-<ParamField body="tierId" type="string" required>
-  The credit pack to purchase. Must be `"boost"`, `"growth"`, or `"scale"`.
+<ParamField body="tierId" type="string">
+  The credit pack to purchase. Must be `"boost"`, `"growth"`, or `"scale"`. Defaults to `"growth"` if omitted. You may also use the alias `packId` for this field.
 </ParamField>
 
 <ParamField body="customerEmail" type="string">
   Pre-fill the customer's email address on the Stripe Checkout page.
 </ParamField>
 
-<ParamField body="successUrl" type="string" required>
-  The URL Stripe redirects the customer to after a successful payment.
+<ParamField body="successUrl" type="string">
+  The URL Stripe redirects the customer to after a successful payment. Defaults to your dashboard URL if omitted.
 </ParamField>
 
-<ParamField body="cancelUrl" type="string" required>
-  The URL Stripe redirects the customer to if they abandon the checkout page.
+<ParamField body="cancelUrl" type="string">
+  The URL Stripe redirects the customer to if they abandon the checkout page. Defaults to your dashboard URL if omitted.
 </ParamField>
 
 **Example request**
 
 ```bash
 curl -s -X POST https://agydesk.com/api/checkout/credits \
-  -H "Authorization: Bearer <your-api-token>" \
+  -H "Authorization: Bearer <your-session-token>" \
   -H "Content-Type: application/json" \
   -d '{
     "tierId": "growth",
@@ -128,9 +142,12 @@ curl -s -X POST https://agydesk.com/api/checkout/credits \
   "url": "https://checkout.stripe.com/c/pay/cs_live_z9y8x7...",
   "pack": {
     "id": "growth",
-    "name": "Growth Pack",
+    "name": "Growth Fleet Pack",
     "price": 50,
-    "credits": 6000
+    "credits": 6000,
+    "bonus": "+20% Free Credits",
+    "bonusPercentage": 20,
+    "description": "Our most popular pack for active SDRs & e-commerce trackers."
   }
 }
 ```
@@ -141,4 +158,8 @@ curl -s -X POST https://agydesk.com/api/checkout/credits \
 
 <ResponseField name="sessionId" type="string">
   The Stripe Checkout session ID for this one-time payment.
+</ResponseField>
+
+<ResponseField name="pack" type="object">
+  The full credit pack object for the selected tier, including `id`, `name`, `price`, `credits`, and any bonus information.
 </ResponseField>

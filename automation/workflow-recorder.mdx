@@ -4,13 +4,11 @@ sidebarTitle: "Workflow Recorder"
 description: "Demonstrate a workflow once in your cloud browser. AgyDesk captures every click and input, then synthesizes a TypeScript daemon worker that replays it."
 ---
 
-The AgyDesk Workflow Recorder lets you automate any browser task by simply demonstrating it once. You interact with your cloud browser normally — searching, clicking, filling forms — while AgyDesk watches every action through the Chrome DevTools Protocol. When you're done, press Enter and AgyDesk synthesizes a production-ready TypeScript daemon worker that replays those exact actions 24 hours a day, 7 days a week, without you lifting a finger again.
+The AgyDesk Workflow Recorder lets you automate any browser task by simply demonstrating it once. You interact with your cloud browser normally — searching, clicking, filling forms — while AgyDesk watches every action. When you're done, press Enter and AgyDesk synthesizes a production-ready TypeScript daemon worker that replays those exact actions 24 hours a day, 7 days a week, without you lifting a finger again.
 
 ## How Recording Works
 
-When you run `agydesk record <workflowName>`, the CLI connects to your cloud Chromium pod via CDP and enables the `Page`, `DOM`, and `Runtime` domains. It then injects a lightweight JavaScript observer directly into the active page using `Runtime.evaluate`. That observer attaches `click` and `change` event listeners to the entire document and serializes each interaction — element selector, tag name, coordinates, and input value — as a `AGY_RECORD:` prefixed JSON string emitted to the CDP console channel.
-
-The CLI listens for `Runtime.consoleAPICalled` messages over the same WebSocket, parses every `AGY_RECORD:` payload, and appends it to an in-memory action trace. When you press Enter, the recorder stops the WebSocket session and passes the full trace to the synthesis engine. The engine converts the trace into a fully-formed TypeScript class — complete with CDP navigation, humanized delays, extraction logic, and the `start()` / `stop()` / `runCycle()` loop — and writes the file to `packages/daemon/src/workers/<workflowName>-worker.ts`.
+When you run `agydesk record <workflowName>`, the CLI connects to your cloud Chromium pod and begins observing your browser session. It captures every click, form input, and navigation event in real time and appends each interaction — element selector, tag name, coordinates, and input value — to an in-memory action trace. When you press Enter, AgyDesk stops capturing and passes the full trace to the synthesis engine. The engine converts your recorded actions into a fully-formed TypeScript class — complete with CDP navigation, humanized delays, extraction logic, and the `start()` / `stop()` / `runCycle()` loop — and saves the worker so it's immediately available to run via `agydesk run <workflowName>`.
 
 ## Recording a Workflow
 
@@ -65,14 +63,8 @@ The CLI listens for `Runtime.consoleAPICalled` messages over the same WebSocket,
     🧠 Synthesizing hardened autonomous worker daemon...
     ```
   </Step>
-  <Step title="Review the generated worker file">
-    AgyDesk writes the synthesized TypeScript class to:
-
-    ```
-    packages/daemon/src/workers/price-tracker-worker.ts
-    ```
-
-    Open the file to review the generated code. You will see your recorded actions translated into CDP `Page.navigate` and `Runtime.evaluate` calls, wrapped in the standard worker class with `start()`, `stop()`, and `runCycle()` methods.
+  <Step title="Review the generated worker">
+    AgyDesk saves the synthesized TypeScript worker and makes it immediately available. You can review the generated code directly from the dashboard or run it straight away with the CLI.
   </Step>
   <Step title="Run the worker immediately">
     Launch the worker with a single command:
@@ -90,8 +82,8 @@ The CLI listens for `Runtime.consoleAPICalled` messages over the same WebSocket,
 The synthesized worker is not a raw replay of mouse coordinates. The synthesis engine compiles your recorded trace into hardened, production-grade automation code that includes:
 
 - **Anti-bot humanization** — every navigation and interaction is followed by a randomized delay between 800 ms and 2000 ms (`getRandomJitter()`), and scroll actions use `{ behavior: 'smooth' }` to mimic natural browsing
-- **CDP-native extraction** — rather than replicating exact click coordinates, the worker uses the captured CSS selectors and element tags to query the DOM robustly across page re-renders
-- **Persistent JSON export** — results are written to `/data/chrome-profile/exports/<name>.json` on your pod's persistent volume (or `data/exports/<name>.json` locally), so data survives container restarts
+- **Selector-based targeting** — rather than replicating exact click coordinates, the worker uses the captured CSS selectors and element tags to query the DOM robustly across page re-renders
+- **Persistent JSON export** — results are written to `data/exports/<name>.json` on your pod's persistent volume, so data survives restarts
 - **Full lifecycle control** — the `start(intervalMs)` / `stop()` / `runCycle()` pattern lets you plug the worker directly into the AgyDesk daemon supervisor or run it as a standalone process
 
 ## Tips for Good Recordings

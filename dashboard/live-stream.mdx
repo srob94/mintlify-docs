@@ -1,7 +1,7 @@
 ---
-title: "Live Cloud Browser Stream and Workstation Control"
+title: "Live Cloud Browser Stream and Workstation Controls"
 sidebarTitle: "Live Stream"
-description: "Access and interact with your persistent cloud Chromium pod in real time via an embedded noVNC session, with full workstation controls and status monitoring."
+description: "View and control your cloud Chromium pod in real time via an embedded noVNC session, with Start, Stop, Reboot controls and live status monitoring."
 ---
 
 The Live Cloud Stream tab is your direct window into the cloud Chromium pod. It embeds a noVNC session running on port 6080 so you see and interact with the browser in real time — no local machine required. Every click, scroll, and keystroke you make in the stream is executed inside the persistent cloud pod, exactly as if you were sitting in front of it.
@@ -68,5 +68,5 @@ Replace `your-pod` with your actual pod subdomain, which is shown in your Cloud 
 </Tip>
 
 <Warning>
-  Do not close the browser tab while a workflow recording is in progress. Closing the tab interrupts the noVNC WebSocket connection and may corrupt the in-flight recording session. Use the Stop Recording button in the CLI (`agydesk record stop`) before navigating away.
+  Do not close the browser tab while a workflow recording is in progress. Closing the tab interrupts the noVNC WebSocket connection and may corrupt the in-flight recording session. Use the **Stop Recording** button in the dashboard before navigating away.
 </Warning>

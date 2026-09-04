@@ -1,5 +1,5 @@
 ---
-title: "Agent API: Bot Synthesis and 2FA Relay Endpoints"
+title: "AgyDesk Agent API: Bot Synthesis and 2FA Relay Guide"
 sidebarTitle: "Agent"
 description: "Use the Agent API to generate TypeScript daemon workers from plain English prompts and manage 2FA relay challenges for unattended automation workflows."
 ---
@@ -22,8 +22,8 @@ Generate a TypeScript daemon worker from a plain English description of what you
   Plain English description of what the bot should do — for example, `"Log into LinkedIn, search for 'VP of Sales' in New York, and export the first 50 profiles to JSON"`.
 </ParamField>
 
-<ParamField body="botName" type="string" required>
-  Name for the generated worker file. Use lowercase letters and hyphens only — for example, `"linkedin-vp-scraper"`. The API sanitizes this value automatically.
+<ParamField body="botName" type="string">
+  Name for the generated worker file. Use lowercase letters and hyphens — for example, `"linkedin-vp-scraper"`. The API sanitizes this value automatically. Defaults to `"custom-ai-bot"` if omitted.
 </ParamField>
 
 <ParamField body="targetUrl" type="string">
@@ -34,7 +34,7 @@ Generate a TypeScript daemon worker from a plain English description of what you
 
 ```bash
 curl -s -X POST https://agydesk.com/api/agent/synthesize \
-  -H "Authorization: Bearer <your-api-token>" \
+  -H "Authorization: Bearer <your-session-token>" \
   -H "Content-Type: application/json" \
   -d '{
     "prompt": "Navigate to the HubSpot contacts page, export all contacts added this week to a JSON file",
@@ -65,11 +65,15 @@ curl -s -X POST https://agydesk.com/api/agent/synthesize \
 </ResponseField>
 
 <ResponseField name="workerPath" type="string">
-  Absolute path to the generated TypeScript worker file on the server.
+  Path to the generated TypeScript worker file on the server.
 </ResponseField>
 
 <ResponseField name="creditsDeducted" type="number">
   Credits deducted from your balance. Always `50` for synthesis requests.
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Human-readable confirmation message.
 </ResponseField>
 
 <ResponseField name="codeSnippet" type="string">
@@ -92,7 +96,7 @@ Retrieve pending 2FA challenges for your pods. When an automation bot encounters
 
 ```bash
 curl -s "https://agydesk.com/api/agent/relay-2fa" \
-  -H "Authorization: Bearer <your-api-token>"
+  -H "Authorization: Bearer <your-session-token>"
 ```
 
 **Response**
@@ -116,7 +120,7 @@ curl -s "https://agydesk.com/api/agent/relay-2fa" \
 
 ```bash
 curl -s "https://agydesk.com/api/agent/relay-2fa?podId=pod-abc123" \
-  -H "Authorization: Bearer <your-api-token>"
+  -H "Authorization: Bearer <your-session-token>"
 ```
 
 **Response**
@@ -127,6 +131,7 @@ curl -s "https://agydesk.com/api/agent/relay-2fa?podId=pod-abc123" \
     "podId": "pod-abc123",
     "type": "sms_2fa",
     "message": "2FA verification required to proceed",
+    "screenshotUrl": "https://cdn.agydesk.com/screenshots/pod-abc123-2fa.png",
     "timestamp": "2025-01-15T14:32:00.000Z",
     "status": "pending"
   }
@@ -143,20 +148,28 @@ Create a new 2FA challenge or resolve an existing one. Your daemon workers call 
 
 **Request body**
 
-<ParamField body="podId" type="string" required>
-  The ID of the pod that requires or has an active 2FA challenge.
-</ParamField>
-
 <ParamField body="action" type="string" required>
   The operation to perform. Must be either `"create_challenge"` or `"resolve_challenge"`.
 </ParamField>
 
-<ParamField body="service" type="string">
-  Human-readable name of the service requiring 2FA — for example, `"linkedin"` or `"google"`. Used in Slack/Telegram alert messages. Required when `action` is `"create_challenge"`.
+<ParamField body="podId" type="string" required>
+  The ID of the pod that requires or has an active 2FA challenge.
 </ParamField>
 
-<ParamField body="resolutionCode" type="string">
-  The 2FA verification code entered by the user. Required when `action` is `"resolve_challenge"`. Maps to the `code` field internally.
+<ParamField body="type" type="string">
+  The type of 2FA challenge — for example, `"sms_2fa"` or `"totp"`. Used when `action` is `"create_challenge"`. Defaults to `"sms_2fa"` if omitted.
+</ParamField>
+
+<ParamField body="message" type="string">
+  Human-readable description of the 2FA prompt. Used when `action` is `"create_challenge"`. Defaults to `"2FA verification required to proceed"`.
+</ParamField>
+
+<ParamField body="screenshotUrl" type="string">
+  Optional URL to a screenshot showing the 2FA prompt. Used when `action` is `"create_challenge"`.
+</ParamField>
+
+<ParamField body="code" type="string">
+  The 2FA verification code entered by the user. Required when `action` is `"resolve_challenge"`.
 </ParamField>
 
 <Tabs>
@@ -165,12 +178,13 @@ Create a new 2FA challenge or resolve an existing one. Your daemon workers call 
 
     ```bash
     curl -s -X POST https://agydesk.com/api/agent/relay-2fa \
-      -H "Authorization: Bearer <your-api-token>" \
+      -H "Authorization: Bearer <your-session-token>" \
       -H "Content-Type: application/json" \
       -d '{
         "action": "create_challenge",
         "podId": "pod-abc123",
-        "service": "linkedin"
+        "type": "sms_2fa",
+        "message": "LinkedIn requires a verification code"
       }'
     ```
 
@@ -185,7 +199,7 @@ Create a new 2FA challenge or resolve an existing one. Your daemon workers call 
     ```
 
     <Note>
-      Creating a challenge triggers a Slack alert (and Telegram notification if configured) so your team can respond to the 2FA prompt immediately. Configure your notification channels in the [Integrations Hub](/dashboard/integrations).
+      Creating a challenge triggers a Slack alert (if configured) so your team can respond to the 2FA prompt immediately. Configure your notification channels in the [Integrations Hub](/dashboard/integrations).
     </Note>
   </Tab>
   <Tab title="resolve_challenge">
@@ -193,12 +207,12 @@ Create a new 2FA challenge or resolve an existing one. Your daemon workers call 
 
     ```bash
     curl -s -X POST https://agydesk.com/api/agent/relay-2fa \
-      -H "Authorization: Bearer <your-api-token>" \
+      -H "Authorization: Bearer <your-session-token>" \
       -H "Content-Type: application/json" \
       -d '{
         "action": "resolve_challenge",
         "podId": "pod-abc123",
-        "resolutionCode": "847291"
+        "code": "847291"
       }'
     ```
 
@@ -210,6 +224,14 @@ Create a new 2FA challenge or resolve an existing one. Your daemon workers call 
       "status": "resolved",
       "podId": "pod-abc123",
       "code": "847291"
+    }
+    ```
+
+    If no active challenge exists for the given `podId`, the endpoint returns a `404`:
+
+    ```json
+    {
+      "error": "No active challenge found for this pod"
     }
     ```
   </Tab>

@@ -54,7 +54,7 @@ Connect HubSpot or Salesforce to AgyDesk so your automation workers can push lea
 
 ## Using CRM in Workers
 
-The following example shows a daemon worker that scrapes a lead and pushes it directly to HubSpot using the access token stored in your integration. The `HUBSPOT_ACCESS_TOKEN` environment variable is automatically injected into your pod from the Integrations Hub — you do not need to set it manually.
+The following example shows a daemon worker that scrapes a lead and pushes it directly to HubSpot using the access token stored in your integration. The HubSpot access token is automatically injected into your pod's environment from the Integrations Hub — you do not need to configure it manually in your worker code.
 
 ```typescript
 // workers/crm-lead-pusher.ts
@@ -69,9 +69,11 @@ interface ScrapedLead {
 }
 
 async function pushLeadToHubSpot(lead: ScrapedLead): Promise<void> {
+  // HUBSPOT_ACCESS_TOKEN is auto-injected into your pod by AgyDesk from the Integrations Hub.
+  // You do not need to set this value manually in any configuration file.
   const accessToken = process.env.HUBSPOT_ACCESS_TOKEN;
   if (!accessToken) {
-    throw new Error("HUBSPOT_ACCESS_TOKEN is not set — connect HubSpot in Integrations Hub.");
+    throw new Error("HubSpot access token is not available — connect HubSpot in the Integrations Hub first.");
   }
 
   const [firstName, ...rest] = lead.name.split(" ");

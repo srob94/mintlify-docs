@@ -1,7 +1,7 @@
 ---
 title: "Record Browser Workflows and Synthesize Automation Workers"
 sidebarTitle: "record"
-description: "Use agydesk record to capture live browser interactions via CDP and compile them into a 24/7 replayable TypeScript daemon worker."
+description: "Use agydesk record to capture live browser interactions via CDP and synthesize a fully replayable TypeScript daemon worker with anti-bot humanization."
 ---
 
 `agydesk record` connects to your live cloud browser, injects an interaction observer via CDP, and records every click and input you make in real time. When you press Enter in the terminal, AgyDesk synthesizes a fully replayable TypeScript daemon worker — complete with anti-bot humanization — ready to run 24/7 in your cloud pod.
@@ -15,7 +15,7 @@ agydesk record <workflowName> [options]
 ## Options
 
 <ParamField path="workflowName" type="string" required>
-  The name for this workflow. AgyDesk uses this name to create the output file `<workflowName>-worker.ts` inside `packages/daemon/src/workers/`.
+  The name for this workflow. AgyDesk uses this name to save the generated worker, which you can then run with `agydesk run <workflowName>`.
 </ParamField>
 
 <ParamField query="--port, -p" type="number" default="9222">
@@ -55,10 +55,10 @@ agydesk record <workflowName> [options]
     Return to your terminal and press **Enter** to end the session. AgyDesk finalises the event log and begins worker synthesis.
   </Step>
   <Step title="Review the generated worker">
-    AgyDesk writes the compiled worker to:
+    AgyDesk synthesizes and saves the compiled worker. You can verify it appears in the worker list with:
 
-    ```
-    packages/daemon/src/workers/my-workflow-worker.ts
+    ```bash
+    agydesk workers
     ```
   </Step>
   <Step title="Run your new worker">

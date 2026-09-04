@@ -36,7 +36,7 @@ BYOC (Bring Your Own Cloud) lets you run your AgyDesk Chromium pod on your own G
     Paste your **GCP Project ID** into the project field. Open the downloaded JSON key file in a text editor, copy the entire contents, and paste it into the **Service Account Key (JSON)** field.
   </Step>
   <Step title="Save and provision">
-    Click **Save & Provision**. AgyDesk will validate your credentials, create a Container-Optimized OS instance in your project, and attach a persistent SSD disk. The pod status will update to **Online** in your dashboard within 90 seconds.
+    Click **Save & Provision**. AgyDesk will validate your credentials and provision a Chromium pod with a persistent SSD volume in your GCP project. The pod status will update to **Online** in your dashboard within 90 seconds.
   </Step>
 </Steps>
 
@@ -56,17 +56,19 @@ BYOC (Bring Your Own Cloud) lets you run your AgyDesk Chromium pod on your own G
     Paste your **Fly API Token** into the token field. Enter your Fly.io **organization slug** (visible in your Fly.io dashboard URL, e.g., `my-org`). Optionally specify a preferred **region** (e.g., `ord` for Chicago, `lax` for Los Angeles, `ams` for Amsterdam).
   </Step>
   <Step title="Save and provision">
-    Click **Save & Provision**. AgyDesk calls the Fly.io Machines API to create a dedicated NVMe volume and boot a MicroVM running Chromium with noVNC. Your pod URL will appear in the **Live Stream** tab within 60 seconds.
+    Click **Save & Provision**. AgyDesk provisions a dedicated Fly.io pod with a persistent NVMe volume running Chromium. Your pod URL will appear in the **Live Stream** tab within 60 seconds.
   </Step>
 </Steps>
 
 ## Pod Resources per Plan
 
-| Plan | GCP Machine Type | Fly.io CPU Kind | vCPU | RAM | Disk |
-|---|---|---|---|---|---|
-| Starter | `e2-medium` | shared | 2 | 4 GB | 20 GB SSD |
-| Pro | `e2-standard-2` | performance | 2 | 8 GB | 50 GB SSD |
-| Agency | `e2-standard-4` | performance | 4 | 16 GB | 100 GB SSD |
+The resource allocation for BYOC pods matches your subscription plan. AgyDesk provisions the appropriate compute tier on your chosen cloud provider automatically.
+
+| Plan | vCPU | RAM | Disk |
+|---|---|---|---|
+| Starter | 2 | 4 GB | 20 GB SSD |
+| Pro | 4 | 8 GB | 50 GB SSD |
+| Agency | 8 | 16 GB | 100 GB SSD |
 
 <Warning>
   Switching your BYOC provider or toggling between AgyDesk Managed and BYOC **destroys your current pod and creates a new one**. Your browser profile stored on the persistent volume is preserved only if you back it up first. Before switching providers, export your Chrome profile data from the **Cloud Settings** → **Volume Backup** panel or use the CLI command `agydesk export-profile` to download a local copy.

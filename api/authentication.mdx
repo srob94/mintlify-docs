@@ -1,40 +1,50 @@
 ---
-title: "Authenticate AgyDesk API Requests"
+title: "AgyDesk API Authentication and Session Token Guide"
 sidebarTitle: "Authentication"
-description: "Learn how to obtain your AgyDesk API token and pass it as a Bearer Authorization header to authenticate all programmatic REST API requests."
+description: "Learn how AgyDesk authenticates API requests through your dashboard session, and how to call the REST API securely from scripts and automation pipelines."
 ---
 
-AgyDesk uses Supabase-backed session authentication. For browser-based dashboard access your session cookie is handled automatically, but for programmatic access you authenticate by passing your API token in the `Authorization` header on every request. All token-authenticated requests must be made over HTTPS.
+AgyDesk uses session-based authentication powered by your dashboard login. When you call the REST API from a browser context, your active session cookie is sent automatically. For server-side scripts, CI pipelines, and daemon workers that run outside the browser, you authenticate by including the session token from your active login as a Bearer value in the `Authorization` header.
 
-## Getting Your API Token
+## How Authentication Works
+
+AgyDesk does not issue standalone API keys from a settings page. Instead, your authentication credential is the session token issued when you sign in to the AgyDesk dashboard. You can obtain this token programmatically after signing in, then pass it with your API requests.
 
 <Steps>
-  <Step title="Log in to AgyDesk">
-    Navigate to [agydesk.com](https://agydesk.com) and sign in with your account credentials.
+  <Step title="Sign in to AgyDesk">
+    Navigate to [agydesk.com](https://agydesk.com) and sign in with your Google account. You are redirected to the dashboard after authentication completes.
   </Step>
-  <Step title="Open Account Settings">
-    Click your avatar in the top-right corner of the dashboard and select **Account Settings**.
+  <Step title="Retrieve your session token">
+    After signing in, open your browser's developer tools (F12), go to **Application → Local Storage → agydesk.com**, and find the `access_token` value stored under your session. Alternatively, if you are building a server-side integration, obtain the token by calling the AgyDesk auth client after your user signs in:
+
+    ```typescript
+    import { createClient } from "@supabase/supabase-js";
+
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    ```
   </Step>
-  <Step title="Copy your API token">
-    Scroll to the **API Access** section and click **Copy Token**. Store it somewhere safe — AgyDesk does not show you the full token again after you leave the page.
+  <Step title="Pass the token on every API request">
+    Include the token in the `Authorization` header as a Bearer value:
+
+    ```bash
+    Authorization: Bearer <your-session-token>
+    ```
   </Step>
 </Steps>
 
-## Using the Token
-
-Pass your token as a Bearer value in the `Authorization` header on every API request:
-
-```
-Authorization: Bearer <your-api-token>
-```
-
 ## Example Request
 
-The following example checks whether your workstation is online using your API token:
+The following example checks whether your workstation is online using your session token:
 
 ```bash
 curl -s https://agydesk.com/api/workstation/status \
-  -H "Authorization: Bearer <your-api-token>"
+  -H "Authorization: Bearer <your-session-token>"
 ```
 
 A successful response looks like:
@@ -45,7 +55,7 @@ A successful response looks like:
   "browser": "Chromium 133.0.6943.53",
   "protocol": "1.3",
   "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 ...",
-  "wsUrl": "ws://localhost:9222/devtools/browser/..."
+  "wsUrl": "ws://localhost:9222/devtools/browser/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 }
 ```
 
@@ -53,13 +63,13 @@ A successful response looks like:
 
 | Status | Meaning |
 |--------|---------|
-| `401 Unauthorized` | The token is missing or does not match any active account |
-| `403 Forbidden` | The token is valid but the account lacks permission for this action |
+| `401 Unauthorized` | The session token is missing or has expired — sign in again to get a fresh token |
+| `403 Forbidden` | The session is valid but the account does not have permission for this action |
 
 <Note>
-  Keep your API token secret. Never embed it in client-side JavaScript, commit it to a public repository, or include it in a browser URL. Treat it with the same care as a password.
+  Keep your session token private. Never embed it in client-side JavaScript, commit it to a public repository, or include it in a browser URL. Treat it with the same care as a password. Session tokens expire automatically — re-authenticate to get a new one when yours expires.
 </Note>
 
 <Tip>
-  For daemon workers and CI pipelines running server-side, store the token in an environment variable — for example `AGYDESK_API_TOKEN` — and reference it at runtime rather than hardcoding the value.
+  For daemon workers and CI pipelines running server-side, store the token in an environment variable — for example `AGYDESK_SESSION_TOKEN` — and reference it at runtime rather than hardcoding the value.
 </Tip>
