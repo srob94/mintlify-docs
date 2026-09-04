@@ -1,0 +1,97 @@
+---
+title: "AgyDesk Subscription Plans and Included Features"
+sidebarTitle: "Plans"
+description: "Compare AgyDesk's Starter, Pro, and Agency plans — persistent cloud Chromium pods with different CPU, RAM, storage, and seat allocations."
+---
+
+AgyDesk offers three subscription plans designed for individuals, growing teams, and enterprise automation operations. Each plan provisions a dedicated 24/7 cloud Chromium pod with a persistent `/data/chrome-profile` volume, noVNC live stream, and CDP remote debugging access — the only difference is how much horsepower your pod gets and how many seats can collaborate on it.
+
+## Plan Comparison
+
+<CardGroup cols={3}>
+  <Card title="Starter" icon="seedling">
+    **$49 / month**
+
+    - 2 vCPU cores
+    - 4 GB RAM
+    - 10 GB persistent storage
+    - 1 workstation pod
+    - 2 seats
+    - AgyDesk Managed cloud only
+    - Standard Gemini 2.5 Flash AI gateway
+    - 500 AI requests / day
+    - Community support & Discord
+  </Card>
+  <Card title="Pro" icon="bolt">
+    **$129 / month**
+
+    - 4 vCPU cores
+    - 8 GB RAM
+    - 20 GB persistent storage
+    - 3 workstation pods
+    - 5 multiplayer seats
+    - BYOC available (GCP or Fly.io)
+    - Claude 3.7 Sonnet + Gemini 2.5 gateway
+    - 5,000 AI requests / day
+    - Priority 24/7 Slack & email support
+  </Card>
+  <Card title="Agency" icon="building">
+    **$349 / month**
+
+    - 8 vCPU cores
+    - 16 GB RAM
+    - 50 GB persistent storage
+    - 10 workstation pods
+    - 25 seats with full RBAC & audit logs
+    - BYOC available (GCP or Fly.io)
+    - Unlimited AI requests
+    - IP allowlists & 2FA enforcement
+    - 99.99% uptime SLA + pod failover
+    - Dedicated Slack Connect with engineering
+  </Card>
+</CardGroup>
+
+## Choosing a Plan
+
+<CardGroup cols={3}>
+  <Card title="Starter — Solo Operators" icon="user">
+    Best for independent developers, solo SDRs, and hobbyists who need a single always-on browser pod for personal automation, testing Prompt-to-Bot workflows, or running lightweight scrapers without keeping a local machine running.
+  </Card>
+  <Card title="Pro — Small Teams" icon="users">
+    Built for growth agencies, e-commerce teams, and active SDR departments that need multiple pods running parallel automation tasks, real-time multiplayer browser collaboration, and access to the full multi-model AI gateway including Claude 3.7 Sonnet.
+  </Card>
+  <Card title="Agency — Enterprise Operations" icon="sitemap">
+    Designed for large outbound sales teams, white-label automation agencies, and scraping fleets that require unlimited seats, role-based access control, audit logging, custom IP allowlists, and enterprise SLA guarantees across 10 dedicated pods.
+  </Card>
+</CardGroup>
+
+## Signing Up
+
+<Steps>
+  <Step title="Visit agydesk.com">
+    Go to [agydesk.com](https://agydesk.com) and click **Get Started** in the navigation bar. You will be taken to the pricing page showing all three plans.
+  </Step>
+  <Step title="Choose your plan">
+    Click **Start with Starter**, **Start with Pro**, or **Start with Agency** depending on your needs. You can always change your plan later from the dashboard.
+  </Step>
+  <Step title="Complete Stripe checkout">
+    Enter your email address and payment details in the Stripe-hosted checkout. All payments are processed securely — AgyDesk never stores your card data. Subscriptions are billed monthly and can be cancelled at any time.
+  </Step>
+  <Step title="Pod auto-provisions">
+    Within seconds of checkout completion, AgyDesk provisions your cloud Chromium pod and redirects you to your dashboard. Your pod will appear online in the **Live Stream** tab, ready for immediate use.
+  </Step>
+</Steps>
+
+## Changing Plans
+
+To upgrade or downgrade your subscription, navigate to **Cloud Settings** → **Billing & Plan** in your dashboard and select a new plan. AgyDesk will immediately re-provision your pod with the new resource allocation (CPU, RAM, and storage). Your browser profile, installed extensions, and saved cookies are preserved across re-provisions because they live on your persistent `/data/chrome-profile` volume.
+
+Downgrades take effect at the next billing cycle. Upgrades apply immediately and are prorated for the remaining days in your current billing period.
+
+<Note>
+  Credits are not included in any subscription plan — they are purchased separately as one-time packs. Your plan keeps your pod running 24/7; credits pay for individual AI-powered actions such as Prompt-to-Bot synthesis, vision OCR, and HeyGen video rendering. See [Credits](/billing/credits) for pricing details.
+</Note>
+
+<Tip>
+  Every new account receives a free credit allocation on signup so you can immediately try the Prompt-to-Bot engine and run your first autonomous browser workflow without purchasing a credit pack first.
+</Tip>

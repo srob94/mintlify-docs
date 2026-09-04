@@ -1,0 +1,65 @@
+---
+title: "Authenticate AgyDesk API Requests"
+sidebarTitle: "Authentication"
+description: "Learn how to obtain your AgyDesk API token and pass it as a Bearer Authorization header to authenticate all programmatic REST API requests."
+---
+
+AgyDesk uses Supabase-backed session authentication. For browser-based dashboard access your session cookie is handled automatically, but for programmatic access you authenticate by passing your API token in the `Authorization` header on every request. All token-authenticated requests must be made over HTTPS.
+
+## Getting Your API Token
+
+<Steps>
+  <Step title="Log in to AgyDesk">
+    Navigate to [agydesk.com](https://agydesk.com) and sign in with your account credentials.
+  </Step>
+  <Step title="Open Account Settings">
+    Click your avatar in the top-right corner of the dashboard and select **Account Settings**.
+  </Step>
+  <Step title="Copy your API token">
+    Scroll to the **API Access** section and click **Copy Token**. Store it somewhere safe — AgyDesk does not show you the full token again after you leave the page.
+  </Step>
+</Steps>
+
+## Using the Token
+
+Pass your token as a Bearer value in the `Authorization` header on every API request:
+
+```
+Authorization: Bearer <your-api-token>
+```
+
+## Example Request
+
+The following example checks whether your workstation is online using your API token:
+
+```bash
+curl -s https://agydesk.com/api/workstation/status \
+  -H "Authorization: Bearer <your-api-token>"
+```
+
+A successful response looks like:
+
+```json
+{
+  "status": "online",
+  "browser": "Chromium 133.0.6943.53",
+  "protocol": "1.3",
+  "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 ...",
+  "wsUrl": "ws://localhost:9222/devtools/browser/..."
+}
+```
+
+## Authentication Errors
+
+| Status | Meaning |
+|--------|---------|
+| `401 Unauthorized` | The token is missing or does not match any active account |
+| `403 Forbidden` | The token is valid but the account lacks permission for this action |
+
+<Note>
+  Keep your API token secret. Never embed it in client-side JavaScript, commit it to a public repository, or include it in a browser URL. Treat it with the same care as a password.
+</Note>
+
+<Tip>
+  For daemon workers and CI pipelines running server-side, store the token in an environment variable — for example `AGYDESK_API_TOKEN` — and reference it at runtime rather than hardcoding the value.
+</Tip>

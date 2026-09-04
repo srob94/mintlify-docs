@@ -1,0 +1,115 @@
+---
+title: "Teach by Demonstration: Record and Replay Browser Workflows"
+sidebarTitle: "Workflow Recorder"
+description: "Demonstrate a workflow once in your cloud browser. AgyDesk captures every click and input, then synthesizes a TypeScript daemon worker that replays it."
+---
+
+The AgyDesk Workflow Recorder lets you automate any browser task by simply demonstrating it once. You interact with your cloud browser normally — searching, clicking, filling forms — while AgyDesk watches every action through the Chrome DevTools Protocol. When you're done, press Enter and AgyDesk synthesizes a production-ready TypeScript daemon worker that replays those exact actions 24 hours a day, 7 days a week, without you lifting a finger again.
+
+## How Recording Works
+
+When you run `agydesk record <workflowName>`, the CLI connects to your cloud Chromium pod via CDP and enables the `Page`, `DOM`, and `Runtime` domains. It then injects a lightweight JavaScript observer directly into the active page using `Runtime.evaluate`. That observer attaches `click` and `change` event listeners to the entire document and serializes each interaction — element selector, tag name, coordinates, and input value — as a `AGY_RECORD:` prefixed JSON string emitted to the CDP console channel.
+
+The CLI listens for `Runtime.consoleAPICalled` messages over the same WebSocket, parses every `AGY_RECORD:` payload, and appends it to an in-memory action trace. When you press Enter, the recorder stops the WebSocket session and passes the full trace to the synthesis engine. The engine converts the trace into a fully-formed TypeScript class — complete with CDP navigation, humanized delays, extraction logic, and the `start()` / `stop()` / `runCycle()` loop — and writes the file to `packages/daemon/src/workers/<workflowName>-worker.ts`.
+
+## Recording a Workflow
+
+<Steps>
+  <Step title="Navigate to your starting page">
+    Open the **Live Stream** tab in your AgyDesk dashboard and browse to the exact page where the workflow begins. For example, if you are recording a price check, navigate to the product's search results page before you start the recorder. The synthesized worker will use this URL as its entry point on every run.
+  </Step>
+  <Step title="Start the recorder">
+    In a local terminal, run the `record` command with a descriptive workflow name. Use hyphens instead of spaces — the name becomes the worker's class name and file name.
+
+    ```bash
+    agydesk record price-tracker
+    ```
+
+    The CLI connects to Chromium on `localhost:9222` by default. To target a different host or port, use the `--host` and `--port` flags:
+
+    ```bash
+    agydesk record price-tracker --host my-pod.agydesk.com --port 9222
+    ```
+
+    You will see:
+
+    ```
+    🎬 [AgyDesk Recorder] Initializing "Teach by Demonstration" session
+       • Target Workflow: "price-tracker"
+       • Connecting to Chromium CDP on localhost:9222...
+
+    🌐 Attached to tab: "Amazon.com" (https://www.amazon.com/s?k=laptop)
+    🟢 [LIVE RECORDING ACTIVE]
+    👉 Interact with your cloud browser. Every action is being captured.
+
+    ⌨️  Press [ENTER] in this terminal when finished...
+    ```
+  </Step>
+  <Step title="Demonstrate the workflow">
+    Switch to your cloud browser in the Live Stream tab and perform the workflow exactly as you want it to be replicated. Every click, form input, and navigation is captured and logged in your terminal in real time:
+
+    ```
+    🎯 [Captured Action] CLICK:   <input>  #twotabsearchtextbox
+    🎯 [Captured Action] INPUT:   <input>  #twotabsearchtextbox  →  "gaming laptop"
+    🎯 [Captured Action] CLICK:   <input>  [name="field-keywords"]
+    🎯 [Captured Action] CLICK:   <div>    .s-result-item
+    ```
+
+    Perform actions deliberately and in order. Avoid unnecessary clicks — everything you do will be replayed on every future cycle.
+  </Step>
+  <Step title="Finish recording">
+    When you have completed the full workflow, press **Enter** in the terminal. The recorder immediately stops capturing and begins synthesis:
+
+    ```
+    🛑 Recording halted. Captured 12 interaction steps.
+    🧠 Synthesizing hardened autonomous worker daemon...
+    ```
+  </Step>
+  <Step title="Review the generated worker file">
+    AgyDesk writes the synthesized TypeScript class to:
+
+    ```
+    packages/daemon/src/workers/price-tracker-worker.ts
+    ```
+
+    Open the file to review the generated code. You will see your recorded actions translated into CDP `Page.navigate` and `Runtime.evaluate` calls, wrapped in the standard worker class with `start()`, `stop()`, and `runCycle()` methods.
+  </Step>
+  <Step title="Run the worker immediately">
+    Launch the worker with a single command:
+
+    ```bash
+    agydesk run price-tracker
+    ```
+
+    The worker executes its first cycle immediately, then repeats on a 45-second default interval. Watch the terminal for extraction logs and confirm results appear in `data/exports/price-tracker.json`.
+  </Step>
+</Steps>
+
+## The Generated Worker
+
+The synthesized worker is not a raw replay of mouse coordinates. The synthesis engine compiles your recorded trace into hardened, production-grade automation code that includes:
+
+- **Anti-bot humanization** — every navigation and interaction is followed by a randomized delay between 800 ms and 2000 ms (`getRandomJitter()`), and scroll actions use `{ behavior: 'smooth' }` to mimic natural browsing
+- **CDP-native extraction** — rather than replicating exact click coordinates, the worker uses the captured CSS selectors and element tags to query the DOM robustly across page re-renders
+- **Persistent JSON export** — results are written to `/data/chrome-profile/exports/<name>.json` on your pod's persistent volume (or `data/exports/<name>.json` locally), so data survives container restarts
+- **Full lifecycle control** — the `start(intervalMs)` / `stop()` / `runCycle()` pattern lets you plug the worker directly into the AgyDesk daemon supervisor or run it as a standalone process
+
+## Tips for Good Recordings
+
+<Accordion title="Keep recordings focused — one workflow per recording">
+  Each recording should capture a single, end-to-end task: one search → one result page → one extraction. If you want to automate two different workflows, run `agydesk record` twice with different names. Focused recordings produce more reliable workers because the synthesis engine has an unambiguous action sequence to compile.
+</Accordion>
+
+<Accordion title="Navigate to the starting page BEFORE running the record command">
+  The recorder captures the current tab URL at the moment it connects, and uses that URL as the worker's entry point. If you start the recorder while on a generic homepage and then navigate during recording, the worker may land on the wrong page. Always position your browser on the correct starting URL first.
+</Accordion>
+
+<Accordion title="Perform actions slowly and deliberately">
+  The recorder captures everything, including accidental clicks. Move your mouse with purpose, pause briefly between interactions, and avoid hovering over elements you do not intend to interact with. Deliberate recordings produce cleaner workers that need less manual cleanup.
+</Accordion>
+
+<Accordion title="Test the generated worker immediately after recording">
+  Run `agydesk run <workflowName>` right after synthesis while the page state is fresh. If the worker fails or returns empty results, re-record the workflow. Common issues: navigating away mid-recording (the captured URL changes), or performing the workflow too quickly (anti-bot delays in the worker may not match a pace that bypasses site defenses).
+</Accordion>
+
+For the full list of `record` command options and flags, see the [CLI Reference: record](/cli/record).

@@ -1,0 +1,123 @@
+---
+title: "Workstation API: Start, Stop, and Monitor Your Cloud Pod"
+sidebarTitle: "Workstation"
+description: "Use the Workstation API to check CDP health and control the full lifecycle of your AgyDesk cloud Chromium pod with four simple endpoints."
+---
+
+The Workstation API endpoints let you check pod health and control the lifecycle of your cloud Chromium workstation programmatically. Use these endpoints to integrate pod management into your automation pipelines, monitoring scripts, or deployment workflows without opening the AgyDesk dashboard.
+
+---
+
+## GET /api/workstation/status
+
+Check whether your cloud Chromium pod is online and retrieve its CDP connection details. The server attempts to reach the pod's DevTools endpoint with a 3-second timeout — if the pod is stopped or unreachable, the endpoint returns a `503`.
+
+```bash
+curl -s https://agydesk.com/api/workstation/status \
+  -H "Authorization: Bearer <your-api-token>"
+```
+
+**Response — online**
+
+```json
+{
+  "status": "online",
+  "browser": "Chromium 133.0.6943.53",
+  "protocol": "1.3",
+  "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
+  "wsUrl": "ws://localhost:9222/devtools/browser/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+}
+```
+
+<ResponseField name="status" type="string">
+  Current workstation state. Either `"online"` or `"offline"`.
+</ResponseField>
+
+<ResponseField name="browser" type="string">
+  Browser name and version reported by the CDP endpoint — for example, `"Chromium 133.0.6943.53"`.
+</ResponseField>
+
+<ResponseField name="protocol" type="string">
+  Chrome DevTools Protocol version in use — for example, `"1.3"`.
+</ResponseField>
+
+<ResponseField name="userAgent" type="string">
+  Full user agent string of the running browser instance.
+</ResponseField>
+
+<ResponseField name="wsUrl" type="string">
+  CDP WebSocket debugger URL. Connect Puppeteer or Playwright to this URL to control the live browser session.
+</ResponseField>
+
+**Response — offline (503)**
+
+```json
+{
+  "status": "offline",
+  "error": "Cannot reach workstation"
+}
+```
+
+---
+
+## POST /api/workstation/start
+
+Start your cloud workstation pod. Call this endpoint when the pod is stopped and you need to bring it back online before running automated workflows. The response is returned immediately while the pod boots in the background — poll `/api/workstation/status` until `status` returns `"online"` before connecting via CDP.
+
+```bash
+curl -s -X POST https://agydesk.com/api/workstation/start \
+  -H "Authorization: Bearer <your-api-token>"
+```
+
+**Response**
+
+```json
+{
+  "status": "starting",
+  "message": "Workstation starting…"
+}
+```
+
+---
+
+## POST /api/workstation/stop
+
+Stop your cloud workstation pod. Use this to conserve resources when no automated workflows are scheduled. Your browser profile, cookies, and installed extensions are preserved and will be available when you start the pod again.
+
+```bash
+curl -s -X POST https://agydesk.com/api/workstation/stop \
+  -H "Authorization: Bearer <your-api-token>"
+```
+
+**Response**
+
+```json
+{
+  "status": "stopped",
+  "message": "Workstation stopped"
+}
+```
+
+---
+
+## POST /api/workstation/reboot
+
+Restart your cloud workstation pod. Use this to recover from a frozen browser session or to apply configuration changes without a full stop-start cycle. The reboot preserves your browser profile — cookies, sessions, and extensions remain intact.
+
+```bash
+curl -s -X POST https://agydesk.com/api/workstation/reboot \
+  -H "Authorization: Bearer <your-api-token>"
+```
+
+**Response**
+
+```json
+{
+  "status": "restarting",
+  "message": "Workstation rebooting…"
+}
+```
+
+<Note>
+  A reboot typically completes in 20–40 seconds. Poll `/api/workstation/status` and wait for `"status": "online"` before attempting CDP connections or browser automation after a reboot.
+</Note>

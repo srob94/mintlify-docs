@@ -1,0 +1,133 @@
+---
+title: "Generate Automation Bots with AI from Your Dashboard"
+sidebarTitle: "Prompt-to-Bot"
+description: "Turn a plain English description into a production-ready TypeScript CDP automation daemon in seconds using the AgyDesk Prompt-to-Bot Engine powered by Gemini 2.5 Flash."
+---
+
+The Prompt-to-Bot Engine tab lets you create full automation daemons from a plain English description — no coding required. You describe what you want the bot to do, and AgyDesk uses Gemini 2.5 Flash to write a production-ready TypeScript worker that connects to your cloud Chromium pod via the Chrome DevTools Protocol. The generated worker is saved directly into your workers library and is ready to run immediately.
+
+## How It Works
+
+<Steps>
+  <Step title="Enter a description">
+    Type a plain English description of what you want the bot to do. Be specific about the target site, what data to extract or what actions to perform, and how often.
+  </Step>
+  <Step title="Provide a target URL (optional)">
+    Enter the URL where the bot should start. If you leave this blank, the bot is generated with a dynamic URL placeholder you can configure later.
+  </Step>
+  <Step title="Name your bot">
+    Give the bot a short, descriptive name (e.g., `amazon-price-watcher`). AgyDesk converts this to a kebab-case filename automatically.
+  </Step>
+  <Step title="Click Generate">
+    Click the **Generate Bot** button. AgyDesk calls the synthesis API (`POST /api/agent/synthesize`), which sends your prompt to Gemini 2.5 Flash with the AgyDesk Daemon Compiler system prompt.
+  </Step>
+  <Step title="Review the generated worker">
+    The synthesized TypeScript worker appears in the output panel. It includes Puppeteer/CDP connection logic, anti-detection delays, structured JSON export, and comprehensive error handling.
+  </Step>
+  <Step title="Run the bot from the CLI">
+    Deploy and start your new worker with the AgyDesk CLI:
+    ```bash
+    agydesk run amazon-price-watcher
+    ```
+  </Step>
+</Steps>
+
+## What Gets Generated
+
+Every synthesized bot follows the AgyDesk worker class pattern — a self-contained TypeScript module with `start`, `stop`, and `runCycle` methods that hooks into the cloud pod's persistent Chromium instance via CDP.
+
+```typescript
+import puppeteer from 'puppeteer';
+import * as fs from 'fs';
+import * as path from 'path';
+
+/**
+ * AgyDesk Synthesized Worker: amazon-price-watcher
+ * Intent: Navigate to amazon.com, search for 'laptop', extract the first
+ *         10 product names and prices, save to JSON every 30 minutes.
+ */
+async function run() {
+  console.log('🚀 [amazon-price-watcher] Starting autonomous worker daemon...');
+
+  const browser = await puppeteer.connect({
+    browserURL: 'http://localhost:9222',
+    defaultViewport: { width: 1920, height: 1080 }
+  });
+
+  const page = await browser.newPage();
+  await page.setUserAgent(
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 ' +
+    '(KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36'
+  );
+
+  try {
+    await page.goto('https://www.amazon.com', { waitUntil: 'networkidle2', timeout: 45000 });
+
+    // Human-like randomized delay
+    await new Promise((r) => setTimeout(r, 2000 + Math.random() * 1500));
+
+    const products = await page.evaluate(() => {
+      return Array.from(document.querySelectorAll('[data-component-type="s-search-result"]'))
+        .slice(0, 10)
+        .map((el) => ({
+          name: el.querySelector('h2 span')?.textContent?.trim() ?? '',
+          price: el.querySelector('.a-price .a-offscreen')?.textContent?.trim() ?? '',
+          timestamp: new Date().toISOString(),
+        }));
+    });
+
+    const exportPath = path.resolve(process.cwd(), 'data/exports/amazon-price-watcher.json');
+    fs.mkdirSync(path.dirname(exportPath), { recursive: true });
+    fs.writeFileSync(exportPath, JSON.stringify(products, null, 2));
+    console.log(`✅ Exported ${products.length} products to ${exportPath}`);
+
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Unknown error';
+    console.error(`❌ [amazon-price-watcher] Error: ${msg}`);
+  } finally {
+    await page.close();
+    browser.disconnect();
+  }
+}
+
+run();
+```
+
+Workers are written to `packages/daemon/src/workers/<bot-name>-worker.ts` and are immediately available to the `agydesk run` command.
+
+<Note>
+  Each bot synthesis costs **50 credits**. The credit deduction happens when you click Generate — not when you run the bot. Running a generated worker costs 1 credit per browser step executed.
+</Note>
+
+## Tips for Good Prompts
+
+<Accordion title="Examples of effective and ineffective prompts">
+  **Good prompts** are specific about the target site, the exact actions or data needed, and the schedule or output format:
+
+  > "Navigate to amazon.com, search for 'laptop', extract the first 10 product names and prices, save the results to a JSON file, and repeat the cycle every 30 minutes."
+
+  > "Go to linkedin.com/in/[username], extract the full work history and education section, format it as a JSON object with employer, title, and date fields, and save to exports/profile.json."
+
+  > "Open app.hubspot.com, filter contacts by the 'New Lead' pipeline stage, copy each contact's email and company name, then post them to my Slack webhook at https://hooks.slack.com/... every hour."
+
+  ---
+
+  **Bad prompts** are vague about what the bot should do, where it should go, or what output is expected:
+
+  > "Scrape stuff." ❌ — No target, no data definition, no output format.
+
+  > "Do some LinkedIn things." ❌ — No action, no scope, no schedule.
+
+  > "Automate my workflow." ❌ — No site, no steps, no goal.
+
+  The more context you give the AI Daemon Compiler, the more complete and accurate the generated worker will be. Include the target URL, specific CSS selectors or element descriptions if you know them, and the exact output structure you need.
+</Accordion>
+
+<CardGroup cols={2}>
+  <Card title="Full Prompt-to-Bot Guide" icon="wand-magic-sparkles" href="/automation/prompt-to-bot">
+    Deep-dive into the synthesis engine, advanced prompting techniques, and how to edit and extend generated workers.
+  </Card>
+  <Card title="Credits & Billing" icon="coins" href="/billing/credits">
+    Understand how credits are consumed for bot synthesis, browser steps, and AI features, and how to top up your balance.
+  </Card>
+</CardGroup>

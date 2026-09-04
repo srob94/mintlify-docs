@@ -1,47 +1,94 @@
 ---
-title: "Quickstart"
-description: "Begin with a guide on the fastest path to a successful outcome"
+title: "Get Started with AgyDesk in Minutes"
+sidebarTitle: "Quickstart"
+description: "Create your account, access your cloud Chromium pod, install the CLI, and run your first automated workflow — all in under ten minutes."
 ---
 
-Describe how someone begins using your product. What is the first thing they need to do? Are there any prerequisites?
-
-A quickstart should take someone from zero to using your product. They'll get a quick win and a sense of what they can accomplish.
-
-## Prerequisites
-
-Before you begin, you must have:
-
-- Requirement one (for example, Node.js 18+, a free account, an API key)
-- Requirement two (for example, a compatible device, a compatible browser, a compatible operating system)
-
-## Get started
+AgyDesk has you up and running quickly: sign up, choose a plan, and your cloud Chromium pod is ready immediately. From there you can watch your browser live, install the CLI, record a workflow by demonstration, and execute it as a 24/7 daemon — no servers to configure and no local browser to keep open.
 
 <Steps>
-  <Step title="Install">
-    Describe how to install your product or sign up.
+  <Step title="Sign Up and Choose a Plan">
+    Go to [agydesk.com](https://agydesk.com) and create your account. During onboarding, select one of the three plans:
 
-    ```bash
-    npm install your-package
-    ```
+    | Plan | Price | Best For |
+    |---|---|---|
+    | **Starter** | $49 / mo | Solo users and explorers |
+    | **Pro** | $129 / mo | Professionals running multiple workflows |
+    | **Agency** | $349 / mo | Teams, client work, and high-volume automation |
+
+    All plans include a dedicated cloud Chromium pod with a persistent browser profile and monthly credits for AI operations.
   </Step>
-  <Step title="Configure">
-    Describe any setup or configuration needed before first use.
+  <Step title="Access Your Dashboard">
+    After signup, you land on your AgyDesk dashboard. The dashboard is organized into seven tabs:
 
-    ```bash
-    your-cli init
-    ```
+    - **Live Cloud Stream** — real-time noVNC view of your Chromium pod
+    - **Prompt-to-Bot Engine** — AI bot generator
+    - **Extension Manager** — install and manage Chrome extensions on your cloud pod
+    - **Integrations Hub** — connect external services
+    - **Team & RBAC** — invite members and manage permissions
+    - **Cloud Settings** — configure your pod, choose BYOC infrastructure
+    - **CDP Logs** — inspect Chrome DevTools Protocol events in real time
   </Step>
-  <Step title="Run it">
-    Show the first thing a user does to see it working.
+  <Step title="View Your Live Cloud Browser">
+    Click the **Live Cloud Stream** tab. The noVNC stream loads instantly and shows your full Chromium browser running in the cloud. You can click, type, and navigate just as you would on a local machine — every action persists after you close the tab.
+  </Step>
+  <Step title="Install the CLI">
+    Install the `agydesk` CLI globally with npm:
 
     ```bash
-    your-cli start
+    npm install -g @agentdesk/cli
     ```
+
+    Verify the installation and confirm your pod is reachable:
+
+    ```bash
+    agydesk status
+    ```
+
+    You should see your pod's CDP endpoint, noVNC URL, and storage paths confirmed as active.
+  </Step>
+  <Step title="Record Your First Workflow">
+    Start a recording session by giving your workflow a name:
+
+    ```bash
+    agydesk record my-workflow
+    ```
+
+    The CLI connects to your cloud pod's CDP endpoint and begins capturing every click and input. Switch to your dashboard's Live Cloud Stream tab and interact with the browser normally — log in to a site, fill a form, navigate pages. When you are done, return to your terminal and press **Enter** to stop recording.
+
+    AgyDesk compiles your interactions into a TypeScript daemon worker file at `packages/daemon/src/workers/my-workflow.ts`, ready to run autonomously.
+  </Step>
+  <Step title="Run Your Worker">
+    List all available workers to confirm your recording was saved:
+
+    ```bash
+    agydesk workers
+    ```
+
+    Then execute your new worker:
+
+    ```bash
+    agydesk run my-workflow
+    ```
+
+    The daemon starts, connects to your cloud pod via CDP, and replays every recorded step. Leave it running — your cloud browser keeps executing the workflow 24/7 without any local process staying open.
   </Step>
 </Steps>
 
-<Tip>
-  Give people a way to get help. This could be a link to a support page, a chat with a customer support agent, or a forum for your product.
+<Note>
+  AI-powered operations consume credits from your plan's monthly allocation. Bot synthesis costs 50 credits, each browser step costs 1 credit, and vision/OCR operations cost 5 credits. Top up any time with a Boost ($20 / 2,000 cr), Growth ($50 / 6,000 cr), or Scale ($100 / 15,000 cr) credit pack.
+</Note>
 
-  Example: Need help? Reach out to us at [support@yourcompany.com](mailto:support@yourcompany.com).
-</Tip>
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card title="CLI Reference" icon="terminal" href="/cli/overview">
+    Explore every `agydesk` command: record, run, inject-cookies, ai, browser-status, and more.
+  </Card>
+  <Card title="Workflow Recorder" icon="circle-dot" href="/automation/workflow-recorder">
+    Learn how the recorder captures interactions and how to edit the generated worker code.
+  </Card>
+  <Card title="Prompt-to-Bot" icon="robot" href="/automation/prompt-to-bot">
+    Skip recording and describe your automation goal in plain English to generate a worker instantly.
+  </Card>
+</CardGroup>

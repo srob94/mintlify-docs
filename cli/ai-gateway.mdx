@@ -1,0 +1,78 @@
+---
+title: "Query Multi-Model AI from the AgyDesk CLI"
+sidebarTitle: "ai"
+description: "Use agydesk ai to send prompts to Gemini, Claude, GPT-4o, or DeepSeek from your terminal via the same AI gateway powering Prompt-to-Bot."
+---
+
+`agydesk ai` gives you a command-line interface to the same multi-model AI gateway used by AgyDesk's Prompt-to-Bot engine. Send natural-language prompts to Gemini 2.5, Claude 3.7 Sonnet, GPT-4o, or DeepSeek V3 directly from your terminal — no browser needed. Use it to prototype automation logic, generate code snippets, or test prompts before synthesizing a full daemon worker.
+
+## Usage
+
+```bash
+agydesk ai <prompt> [options]
+```
+
+## Options
+
+<ParamField path="prompt" type="string" required>
+  The prompt text to send to the AI model. Wrap multi-word prompts in quotes. The CLI accepts multiple space-separated words and joins them automatically.
+</ParamField>
+
+<ParamField query="--model, -m" type="string" default="google/gemini-2.5-flash">
+  The model identifier to use. Must match the model IDs listed in the table below. When using the `openrouter` provider, pass the full `provider/model` slug.
+</ParamField>
+
+<ParamField query="--provider, -p" type="string" default="openrouter">
+  The API provider to route the request through. Options: `openrouter` (default), `gemini`, `anthropic`. When set to `gemini`, the CLI calls the Google GenAI API directly using your `GEMINI_API_KEY`.
+</ParamField>
+
+## Supported Models
+
+| Model ID | Provider | Notes |
+|---|---|---|
+| `google/gemini-2.5-flash` | openrouter | Default model — fast responses, low cost |
+| `google/gemini-2.5-pro` | openrouter | Higher quality reasoning and long context |
+| `anthropic/claude-3.7-sonnet` | openrouter | Strong instruction-following and code generation |
+| `openai/gpt-4o` | openrouter | OpenAI flagship, broad general capability |
+| `deepseek/deepseek-v3` | openrouter | Cost-effective with strong coding performance |
+
+## Examples
+
+<CodeGroup>
+
+```bash Basic prompt
+agydesk ai "What is the best way to scrape LinkedIn profiles?"
+```
+
+```bash Specify a model
+agydesk ai --model anthropic/claude-3.7-sonnet "Write a Puppeteer script to extract job titles from a LinkedIn search results page"
+```
+
+```bash Use the Gemini provider directly
+agydesk ai --provider gemini "Summarize this page and list the main call-to-action elements"
+```
+
+</CodeGroup>
+
+The CLI prints the model and provider it is using before streaming the response:
+
+```
+🤖 [AgyDesk Multi-Model Gateway] Model: google/gemini-2.5-flash | Provider: openrouter
+
+To scrape LinkedIn profiles responsibly, use a persistent authenticated
+browser session combined with rate-limited page navigation...
+```
+
+<Note>
+  The `agydesk ai` command requires at least one API key configured in your environment. Set `OPENROUTER_API_KEY` to use any model via OpenRouter (recommended), or set `GEMINI_API_KEY` / `GOOGLE_API_KEY` to fall back to the native Google GenAI API. If neither key is present, the command exits with an error.
+
+  ```bash
+  export OPENROUTER_API_KEY=sk-or-v1-...
+  # or
+  export GEMINI_API_KEY=AIza...
+  ```
+</Note>
+
+<Tip>
+  Use `agydesk ai` to prototype your automation logic and iterate on prompts before synthesizing a full daemon worker with `agydesk record` or the Prompt-to-Bot engine. It is the fastest way to validate an approach without spinning up a recording session.
+</Tip>

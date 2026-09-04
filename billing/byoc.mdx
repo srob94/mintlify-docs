@@ -1,0 +1,77 @@
+---
+title: "Bring Your Own Cloud: Run AgyDesk on GCP or Fly.io"
+sidebarTitle: "BYOC"
+description: "Run your AgyDesk Chromium pod on your own Google Cloud Platform or Fly.io account for data residency, compliance, and full infrastructure control."
+---
+
+BYOC (Bring Your Own Cloud) lets you run your AgyDesk Chromium pod on your own Google Cloud Platform or Fly.io account instead of AgyDesk's managed infrastructure. Your browser data, session recordings, and exported files stay entirely within your own cloud environment — AgyDesk's control plane manages the pod lifecycle, but compute and storage costs flow through your own cloud billing account.
+
+## When to Use BYOC
+
+- **Data residency requirements** — your organization mandates that browser data stays within a specific cloud region or account
+- **Existing GCP or Fly.io credits** — you have committed cloud spend you want to utilize
+- **Enterprise compliance** — SOC 2, HIPAA, or internal security policies require infrastructure isolation
+- **Custom regions** — you need your pod in a specific GCP zone or Fly.io region closer to your target websites or team
+- **Cost transparency** — your finance team requires cloud spend to appear on your own cloud invoices
+
+## GCP Setup
+
+<Steps>
+  <Step title="Create or select a GCP project">
+    Log in to the [Google Cloud Console](https://console.cloud.google.com) and either create a new project (e.g., `agydesk-prod`) or select an existing project where you want the pod to run. Note your **Project ID** — you will need it in a later step.
+  </Step>
+  <Step title="Enable the Compute Engine API">
+    In the Google Cloud Console, navigate to **APIs & Services** → **Library** and search for **Compute Engine API**. Click **Enable**. This allows AgyDesk to create and manage Compute Engine VM instances in your project.
+  </Step>
+  <Step title="Create a service account">
+    Go to **IAM & Admin** → **Service Accounts** → **Create Service Account**. Give it a descriptive name such as `agydesk-provisioner`. On the permissions step, assign the **Compute Admin** role (`roles/compute.admin`). Click **Done** to create the account.
+  </Step>
+  <Step title="Download the service account JSON key">
+    Click on the newly created service account, go to the **Keys** tab, click **Add Key** → **Create new key**, and select **JSON**. Download the key file to your local machine. Keep this file secure — it grants compute access to your GCP project.
+  </Step>
+  <Step title="Open Cloud & BYOC Settings in AgyDesk">
+    In your AgyDesk dashboard, click the **Cloud Settings** tab in the left sidebar. Under **Cloud Provider**, select **Google Cloud Platform (GCP)**.
+  </Step>
+  <Step title="Enter your GCP credentials">
+    Paste your **GCP Project ID** into the project field. Open the downloaded JSON key file in a text editor, copy the entire contents, and paste it into the **Service Account Key (JSON)** field.
+  </Step>
+  <Step title="Save and provision">
+    Click **Save & Provision**. AgyDesk will validate your credentials, create a Container-Optimized OS instance in your project, and attach a persistent SSD disk. The pod status will update to **Online** in your dashboard within 90 seconds.
+  </Step>
+</Steps>
+
+## Fly.io Setup
+
+<Steps>
+  <Step title="Create a Fly.io account">
+    Sign up or log in at [fly.io](https://fly.io). Fly.io provisions sub-second MicroVMs with NVMe persistent volumes — ideal for low-latency browser pods with fast cold-start times.
+  </Step>
+  <Step title="Generate a personal access token">
+    In the Fly.io dashboard, click your account avatar → **Access Tokens** → **Create Token**. Name it `agydesk-provisioner` and copy the generated token. Fly.io shows the token only once, so store it securely.
+  </Step>
+  <Step title="Open Cloud & BYOC Settings in AgyDesk">
+    In your AgyDesk dashboard, go to the **Cloud Settings** tab and select **Fly.io** as your cloud provider.
+  </Step>
+  <Step title="Enter your Fly.io credentials">
+    Paste your **Fly API Token** into the token field. Enter your Fly.io **organization slug** (visible in your Fly.io dashboard URL, e.g., `my-org`). Optionally specify a preferred **region** (e.g., `ord` for Chicago, `lax` for Los Angeles, `ams` for Amsterdam).
+  </Step>
+  <Step title="Save and provision">
+    Click **Save & Provision**. AgyDesk calls the Fly.io Machines API to create a dedicated NVMe volume and boot a MicroVM running Chromium with noVNC. Your pod URL will appear in the **Live Stream** tab within 60 seconds.
+  </Step>
+</Steps>
+
+## Pod Resources per Plan
+
+| Plan | GCP Machine Type | Fly.io CPU Kind | vCPU | RAM | Disk |
+|---|---|---|---|---|---|
+| Starter | `e2-medium` | shared | 2 | 4 GB | 20 GB SSD |
+| Pro | `e2-standard-2` | performance | 2 | 8 GB | 50 GB SSD |
+| Agency | `e2-standard-4` | performance | 4 | 16 GB | 100 GB SSD |
+
+<Warning>
+  Switching your BYOC provider or toggling between AgyDesk Managed and BYOC **destroys your current pod and creates a new one**. Your browser profile stored on the persistent volume is preserved only if you back it up first. Before switching providers, export your Chrome profile data from the **Cloud Settings** → **Volume Backup** panel or use the CLI command `agydesk export-profile` to download a local copy.
+</Warning>
+
+<Note>
+  AgyDesk Managed (the default cloud option) requires zero configuration and is recommended for most users. AgyDesk handles region selection, uptime monitoring, and infrastructure updates automatically. Switch to BYOC only if you have specific data residency, compliance, or billing requirements.
+</Note>

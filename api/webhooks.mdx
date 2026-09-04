@@ -1,0 +1,74 @@
+---
+title: "Stripe Webhook Configuration for AgyDesk Billing Events"
+sidebarTitle: "Webhooks"
+description: "Configure Stripe webhooks to let AgyDesk automatically provision and deprovision cloud pods in response to subscription payments and cancellations."
+---
+
+AgyDesk uses Stripe webhooks to automatically provision cloud pods after successful subscription payments and deprovision them when subscriptions are cancelled. The webhook endpoint is `POST /api/webhooks/stripe`. You do not need to call this endpoint yourself — Stripe calls it on your behalf whenever a billing event occurs.
+
+## Handled Events
+
+| Stripe Event | Action Taken by AgyDesk |
+|---|---|
+| `checkout.session.completed` | Provisions a new Fly.io cloud pod for the customer and sends a confirmation email with the pod's live stream and CDP URLs |
+| `customer.subscription.deleted` | Stops and deprovisions the customer's cloud pod, releasing all associated compute and storage resources |
+
+## Webhook Security
+
+Stripe signs every webhook payload with a `Stripe-Signature` header derived from your webhook signing secret. AgyDesk verifies this signature before processing any event — requests that arrive without a valid signature are rejected with a `400` error.
+
+<Warning>
+  Do NOT call `/api/webhooks/stripe` directly from your own code. Requests without a valid `Stripe-Signature` header are rejected. The endpoint is exclusively for inbound Stripe event delivery.
+</Warning>
+
+## Configuring the Webhook in Stripe
+
+If you are running AgyDesk on your own infrastructure (GCP BYOC or Fly.io BYOC), you must register the webhook endpoint in your Stripe Dashboard and add the signing secret to your environment.
+
+<Steps>
+  <Step title="Open the Stripe Webhooks Dashboard">
+    Log in to your [Stripe Dashboard](https://dashboard.stripe.com), go to **Developers** in the top navigation, then click **Webhooks** in the left sidebar.
+  </Step>
+  <Step title="Add a new endpoint">
+    Click **Add endpoint** in the top-right corner of the webhooks list.
+  </Step>
+  <Step title="Enter the AgyDesk webhook URL">
+    In the **Endpoint URL** field, enter:
+
+    ```
+    https://agydesk.com/api/webhooks/stripe
+    ```
+
+    If you are self-hosting on a custom domain, replace `agydesk.com` with your own domain.
+  </Step>
+  <Step title="Select the events to listen for">
+    Under **Select events to listen to**, choose the following two events:
+
+    - `checkout.session.completed`
+    - `customer.subscription.deleted`
+
+    Click **Add events**, then click **Add endpoint** to save.
+  </Step>
+  <Step title="Copy the signing secret">
+    Once the endpoint is saved, click on it in the webhooks list. Under **Signing secret**, click **Reveal** and copy the value — it begins with `whsec_`.
+  </Step>
+  <Step title="Add the signing secret to your environment">
+    Set the signing secret as the `STRIPE_WEBHOOK_SECRET` environment variable in your AgyDesk deployment. For BYOC deployments, add it to your Fly.io secrets or GCP Secret Manager.
+
+    ```bash
+    # Fly.io BYOC
+    fly secrets set STRIPE_WEBHOOK_SECRET=whsec_your_signing_secret
+
+    # Local / self-hosted
+    STRIPE_WEBHOOK_SECRET=whsec_your_signing_secret
+    ```
+  </Step>
+</Steps>
+
+<Note>
+  If you are on **AgyDesk Managed**, the webhook endpoint is already registered and the signing secret is configured — you do not need to complete any of these steps. Pod provisioning happens automatically after every successful checkout.
+</Note>
+
+<Warning>
+  Keep your Stripe webhook signing secret private. Never commit it to source control or expose it in client-side code. If you suspect the secret has been compromised, rotate it immediately in the Stripe Dashboard under **Developers → Webhooks → your endpoint → Signing secret → Roll secret**.
+</Warning>

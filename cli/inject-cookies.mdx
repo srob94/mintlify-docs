@@ -1,0 +1,128 @@
+---
+title: "Inject Session Cookies into Your Cloud Browser"
+sidebarTitle: "inject-cookies"
+description: "Transfer authenticated browser sessions from your local machine to your AgyDesk cloud pod using agydesk inject-cookies — no passwords needed."
+---
+
+`agydesk inject-cookies` transfers authenticated browser sessions from your local machine to your cloud pod. Export cookies from any site — LinkedIn, HubSpot, Upwork, or any service that uses standard browser cookies — and inject them directly into your running cloud browser without re-typing passwords or solving CAPTCHAs.
+
+## Usage
+
+```bash
+agydesk inject-cookies <filePath> [options]
+```
+
+## Options
+
+<ParamField path="filePath" type="string" required>
+  Path to the cookie file on your local machine. Accepts JSON array format (from Cookie-Editor and similar extensions) or Netscape tab-separated format.
+</ParamField>
+
+<ParamField query="--port, -p" type="number" default="9222">
+  The CDP port your cloud Chromium pod is listening on.
+</ParamField>
+
+<ParamField query="--host, -h" type="string" default="localhost">
+  The CDP host your cloud Chromium pod is running on.
+</ParamField>
+
+## Supported File Formats
+
+<Tabs>
+  <Tab title="JSON Format">
+    The JSON format is produced by browser extensions such as [Cookie-Editor](https://cookie-editor.com/) and is the recommended format. The file must be a JSON array of cookie objects:
+
+    ```json
+    [
+      {
+        "name": "li_at",
+        "value": "AQEDATxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "domain": ".linkedin.com",
+        "path": "/",
+        "secure": true,
+        "httpOnly": true,
+        "expirationDate": 1740000000
+      },
+      {
+        "name": "JSESSIONID",
+        "value": "ajax:12345678901234567",
+        "domain": ".linkedin.com",
+        "path": "/",
+        "secure": true,
+        "httpOnly": false,
+        "expirationDate": 1740000000
+      }
+    ]
+    ```
+  </Tab>
+  <Tab title="Netscape Format">
+    The Netscape format is the classic tab-separated cookie file used by `curl`, `wget`, and many scraping tools. Each line represents one cookie:
+
+    ```
+    # Netscape HTTP Cookie File
+    # https://curl.se/docs/http-cookies.html
+    #
+    .linkedin.com	TRUE	/	TRUE	1740000000	li_at	AQEDATxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+    .linkedin.com	TRUE	/	TRUE	1740000000	JSESSIONID	ajax:12345678901234567
+    .linkedin.com	TRUE	/	FALSE	1740000000	lidc	b=VB12:s=V:r=V:a=V:p=V:g=123
+    ```
+
+    Columns (tab-separated): `domain`, `include subdomains`, `path`, `secure`, `expiry`, `name`, `value`
+  </Tab>
+</Tabs>
+
+## Step-by-Step
+
+<Steps>
+  <Step title="Log in on your local browser">
+    Open the target service in your local browser (Chrome, Firefox, or Edge) and complete the normal login flow, including any two-factor authentication.
+  </Step>
+  <Step title="Export your cookies">
+    Install the [Cookie-Editor](https://cookie-editor.com/) browser extension (available for Chrome and Firefox). Navigate to the site, open Cookie-Editor, and click **Export → Export as JSON**. Copy the exported JSON.
+  </Step>
+  <Step title="Save the cookie file">
+    Paste the JSON into a local file, for example:
+
+    ```bash
+    # Save the clipboard content to a file
+    pbpaste > linkedin-cookies.json
+    ```
+  </Step>
+  <Step title="Inject the cookies">
+    Run the inject command, pointing at your saved file:
+
+    ```bash
+    agydesk inject-cookies linkedin-cookies.json
+    ```
+
+    The CLI reports how many cookies were found and confirms successful injection:
+
+    ```
+    🍪 [AgyDesk Cookie Migrator] Loading session cookies from: linkedin-cookies.json...
+       Found 12 cookie entries. Injecting via CDP Network.setCookies...
+    ✅ Successfully injected 12 cookies into cloud pod on localhost:9222!
+       Your cloud browser is now authenticated without re-typing passwords.
+    ```
+  </Step>
+  <Step title="Reload the page in your cloud browser">
+    Switch to the **Live Stream** tab in your AgyDesk dashboard and reload the page. You are now fully authenticated in your cloud browser — no login prompt required.
+  </Step>
+</Steps>
+
+## Supported Services
+
+`inject-cookies` works with any site that uses standard browser cookies. Common use cases include:
+
+- **LinkedIn** — inject session cookies to automate prospecting, outreach, and data export workflows
+- **Upwork** — maintain authenticated sessions for proposal tracking and messaging bots
+- **HubSpot** — transfer your CRM session to automate contact management and reporting workflows
+
+Any other service that authenticates via HTTP cookies is equally supported.
+
+<Warning>
+  Session cookies expire. If your automation workers start encountering login prompts or redirects, re-export your cookies locally and re-run `agydesk inject-cookies` to refresh the session in your cloud pod.
+</Warning>
+
+<Note>
+  Cookies are injected via the Chrome DevTools Protocol `Network.setCookies` command and take effect in the active browser session immediately — no browser restart is required.
+</Note>

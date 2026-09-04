@@ -1,0 +1,61 @@
+---
+title: "AgyDesk REST API Reference Overview"
+sidebarTitle: "Overview"
+description: "Explore every AgyDesk REST endpoint — workstation control, bot synthesis, billing, 2FA relay, and webhooks, all served from https://agydesk.com/api."
+---
+
+The AgyDesk REST API lets you control your cloud workstation, generate automation bots, manage billing, and handle 2FA challenges programmatically. Every endpoint is served from `https://agydesk.com/api` and accepts JSON request bodies with JSON responses. You can use the API directly from your own scripts, CI pipelines, or AgyDesk daemon workers running inside the pod.
+
+## Base URL
+
+```
+https://agydesk.com/api
+```
+
+## Content Type
+
+All requests must include a `Content-Type: application/json` header. Endpoints that accept a request body expect a UTF-8 encoded JSON object.
+
+## Authentication
+
+AgyDesk authenticates API requests using a Bearer token passed in the `Authorization` header. Full details — including how to obtain your token — are on the [Authentication](/api/authentication) page.
+
+```bash
+Authorization: Bearer <your-api-token>
+```
+
+## Endpoint Summary
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/workstation/status` | Check workstation health and CDP connection |
+| `POST` | `/workstation/start` | Start the cloud workstation pod |
+| `POST` | `/workstation/stop` | Stop the cloud workstation pod |
+| `POST` | `/workstation/reboot` | Restart the cloud workstation pod |
+| `POST` | `/agent/synthesize` | Generate a bot worker from a plain English prompt |
+| `GET` | `/agent/relay-2fa` | Retrieve pending 2FA challenges |
+| `POST` | `/agent/relay-2fa` | Create or resolve a 2FA challenge |
+| `POST` | `/checkout` | Create a subscription checkout session |
+| `POST` | `/checkout/credits` | Create a credit pack purchase session |
+| `POST` | `/webhooks/stripe` | Stripe event webhook receiver |
+
+## Error Responses
+
+All endpoints use standard HTTP status codes. Error responses include an `error` field with a human-readable message.
+
+| Status | Meaning |
+|--------|---------|
+| `200` | Success — the request completed as expected |
+| `400` | Bad request — a required parameter is missing or invalid |
+| `401` | Unauthorized — the API token is missing or invalid |
+| `503` | Service unavailable — the workstation pod is offline |
+
+```json
+{
+  "error": "Missing required 'prompt' field."
+}
+```
+
+<Note>
+  The Stripe webhook endpoint (`/api/webhooks/stripe`) requires a valid `Stripe-Signature` header signed with your webhook secret. It is not a general-purpose endpoint — do not call it directly from your own code.
+</Note>

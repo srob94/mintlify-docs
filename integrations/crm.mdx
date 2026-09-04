@@ -1,0 +1,134 @@
+---
+title: "Connect HubSpot and Salesforce to Your Automation Workflows"
+sidebarTitle: "CRM"
+description: "Push scraped leads, create contacts, and log activities in HubSpot or Salesforce automatically from AgyDesk daemon workers and AI-generated bots."
+---
+
+Connect HubSpot or Salesforce to AgyDesk so your automation workers can push leads, contacts, and activity data directly into your CRM without manual data entry. Once connected, every daemon worker running on your pod can read the integration credentials from the environment and make authenticated API calls to your CRM on each scraping cycle.
+
+## HubSpot
+
+<Steps>
+  <Step title="Open the Integrations Hub">
+    In your AgyDesk dashboard, click the **Integrations Hub** tab and find the **HubSpot CRM** card under the CRM category.
+  </Step>
+  <Step title="Start the OAuth flow">
+    Click **Connect**. An OAuth authorization popup opens and directs you to HubSpot's permission screen. Log in to your HubSpot account if prompted.
+  </Step>
+  <Step title="Grant permissions">
+    HubSpot will request access to **Contacts**, **Companies**, and **CRM Objects**. Review the permissions and click **Connect app** to authorize AgyDesk.
+  </Step>
+  <Step title="Confirm the connection">
+    The popup closes and the HubSpot card shows a green **Connected** badge with your portal ID. AgyDesk stores the OAuth access token encrypted in your workspace secrets vault.
+  </Step>
+</Steps>
+
+**What HubSpot integration enables:**
+- Push scraped leads as new Contacts with custom property mapping
+- Create or update Company records from directory data
+- Log browser activities and AI-generated notes as CRM Timeline events
+- Trigger HubSpot workflows from worker events via the Engagements API
+
+## Salesforce
+
+<Steps>
+  <Step title="Open the Integrations Hub">
+    In your AgyDesk dashboard, click the **Integrations Hub** tab and find the **Salesforce Enterprise** card.
+  </Step>
+  <Step title="Start the OAuth flow">
+    Click **Connect**. Select **Production** or **Sandbox** environment. You will be redirected to Salesforce's OAuth login page.
+  </Step>
+  <Step title="Authorize the connected app">
+    Log in with your Salesforce credentials and click **Allow** to grant AgyDesk access to your org's API. AgyDesk requests the `api`, `refresh_token`, and `offline_access` OAuth scopes.
+  </Step>
+  <Step title="Confirm the connection">
+    You are redirected back to the Integrations Hub. The Salesforce card shows **Connected** with your org's instance URL.
+  </Step>
+</Steps>
+
+**What Salesforce integration enables:**
+- Map browser discoveries to standard Lead and Contact objects
+- Create Opportunity records from high-value scraped targets
+- Write custom field values including source URL, extracted email, and AI match score
+- Update existing records without duplicate creation using UPSERT on external IDs
+
+## Using CRM in Workers
+
+The following example shows a daemon worker that scrapes a lead and pushes it directly to HubSpot using the access token stored in your integration. The `HUBSPOT_ACCESS_TOKEN` environment variable is automatically injected into your pod from the Integrations Hub — you do not need to set it manually.
+
+```typescript
+// workers/crm-lead-pusher.ts
+// Pushes a newly scraped lead to HubSpot Contacts API
+
+interface ScrapedLead {
+  name: string;
+  email: string;
+  website: string;
+  category: string;
+  location: string;
+}
+
+async function pushLeadToHubSpot(lead: ScrapedLead): Promise<void> {
+  const accessToken = process.env.HUBSPOT_ACCESS_TOKEN;
+  if (!accessToken) {
+    throw new Error("HUBSPOT_ACCESS_TOKEN is not set — connect HubSpot in Integrations Hub.");
+  }
+
+  const [firstName, ...rest] = lead.name.split(" ");
+  const lastName = rest.join(" ") || "Unknown";
+
+  const payload = {
+    properties: {
+      firstname: firstName,
+      lastname: lastName,
+      email: lead.email,
+      website: lead.website,
+      industry: lead.category,
+      city: lead.location,
+      lead_source: "AgyDesk Automation",
+      hs_lead_status: "NEW",
+    },
+  };
+
+  const response = await fetch("https://api.hubapi.com/crm/v3/objects/contacts", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    // Handle duplicate contact gracefully
+    if (response.status === 409) {
+      console.log(`[HubSpot] Contact already exists for ${lead.email} — skipping.`);
+      return;
+    }
+    throw new Error(`HubSpot API error ${response.status}: ${JSON.stringify(error)}`);
+  }
+
+  const contact = await response.json();
+  console.log(`✅ [HubSpot] Contact created: ${lead.email} (ID: ${contact.id})`);
+}
+
+// Example: push a batch of scraped leads
+const scrapedLeads: ScrapedLead[] = [
+  {
+    name: "Alex Johnson",
+    email: "alex@hyperscaledigital.co",
+    website: "https://hyperscaledigital.co",
+    category: "Performance Creative & Meta Ads",
+    location: "San Francisco, CA",
+  },
+];
+
+for (const lead of scrapedLeads) {
+  await pushLeadToHubSpot(lead);
+}
+```
+
+<Tip>
+  Use the **Prompt-to-Bot** engine to generate workers that automatically push scraped leads to your CRM. Describe your target site and CRM mapping in plain English — for example, "scrape the Clutch agency directory and push each result as a HubSpot Contact with the industry and city fields populated" — and AgyDesk will synthesize and deploy the full TypeScript worker.
+</Tip>

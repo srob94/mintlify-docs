@@ -1,0 +1,103 @@
+---
+title: "Configure Your Cloud Infrastructure and BYOC Settings"
+sidebarTitle: "Cloud Settings"
+description: "Choose where your Chromium pod runs — AgyDesk Managed cloud, your own GCP project, or your own Fly.io account — and configure pod specs and BYOC credentials."
+---
+
+The Cloud & BYOC Settings tab controls where your Chromium pod runs — on AgyDesk's managed cloud, your own GCP account, or your own Fly.io account. Bring Your Own Cloud (BYOC) mode is designed for teams with data residency requirements, existing cloud credits, or the need to run pods inside a private VPC. All three modes provision the same persistent Chromium 152 runtime; only the underlying infrastructure changes.
+
+## Infrastructure Options
+
+<Tabs>
+  <Tab title="AgyDesk Managed">
+    The default mode. AgyDesk provisions and manages your Chromium pod automatically on Fly.io infrastructure. You do not need a cloud account, API tokens, or any infrastructure knowledge.
+
+    - Zero configuration required
+    - Pods are provisioned within seconds of sign-up
+    - AgyDesk handles all scaling, restarts, and volume management
+    - Pods run on Fly.io's global network with sub-300ms boot times
+    - Recommended for all users who do not have specific cloud requirements
+
+    No credentials to enter — just click **Save & Apply Config** with this mode selected.
+  </Tab>
+  <Tab title="GCP BYOC">
+    Run your pod on a Google Compute Engine instance inside your own GCP project. AgyDesk uses the GCP Compute Engine API to provision a Container-Optimized OS instance with a persistent SSD disk and the AgyDesk runtime image from Google Artifact Registry.
+
+    Enter the following credentials in the GCP BYOC form:
+
+    <ParamField body="GCP Project ID" type="string" required>
+      Your Google Cloud project ID (e.g., `my-company-prod`). AgyDesk provisions all resources inside this project.
+    </ParamField>
+
+    <ParamField body="Service Account Key (JSON)" type="string" required>
+      A JSON service account key with the `roles/compute.instanceAdmin.v1` and `roles/storage.objectAdmin` IAM roles. Paste the full JSON string into the field.
+    </ParamField>
+
+    AgyDesk provisions the pod with the following gcloud equivalent:
+
+    ```bash
+    gcloud compute instances create-with-container agydesk-pod \
+      --container-image=us-docker.pkg.dev/YOUR_PROJECT/agentdesk/runtime:latest \
+      --zone=us-central1-a \
+      --machine-type=e2-standard-2 \
+      --boot-disk-size=20GB \
+      --boot-disk-type=pd-balanced
+    ```
+
+    For the full GCP BYOC setup walkthrough, see the [BYOC Guide](/billing/byoc).
+  </Tab>
+  <Tab title="Fly.io BYOC">
+    Run your pod as a Fly Machine inside your own Fly.io organization. AgyDesk uses the Fly Machines REST API (`api.machines.dev/v1`) to create an isolated microVM with a dedicated encrypted NVMe volume mounted at `/data/chrome-profile`.
+
+    Enter the following credentials in the Fly.io BYOC form:
+
+    <ParamField body="Fly API Token" type="string" required>
+      A Fly.io personal access token beginning with `FlyV1`. Generate one at [fly.io/user/personal_access_tokens](https://fly.io/user/personal_access_tokens).
+    </ParamField>
+
+    <ParamField body="Fly Organization Slug" type="string" required>
+      The slug of the Fly organization where AgyDesk should deploy your pod (e.g., `my-company`). Find this in your Fly.io dashboard under **Organization Settings**.
+    </ParamField>
+
+    AgyDesk creates the machine with the runtime image `registry.fly.io/agentdesk-runtime:latest` and exposes port 6080 (noVNC stream) and port 9222 (CDP) via TLS.
+
+    For the full Fly.io BYOC setup walkthrough, see the [BYOC Guide](/billing/byoc).
+  </Tab>
+</Tabs>
+
+## Pod Specifications per Plan
+
+Each plan provisions a pod with different compute and storage resources:
+
+| Plan | vCPU | RAM | NVMe Storage |
+|------|------|-----|--------------|
+| **Starter** ($49/mo) | 2 vCPU | 4 GB | 10 GB |
+| **Pro** ($129/mo) | 4 vCPU | 8 GB | 20 GB |
+| **Agency** ($349/mo) | 8 vCPU | 16 GB | 50 GB |
+
+In GCP BYOC mode, these map to `e2-medium` (Starter), `e2-standard-2` (Pro), and `e2-standard-4` (Agency) machine types. In Fly.io mode, the CPU kind is `shared` for Starter and `performance` for Pro and Agency.
+
+## Switching Infrastructure Mode
+
+<Steps>
+  <Step title="Open Cloud & BYOC Settings">
+    Click the **Cloud & BYOC Settings** tab in the Workstation Cockpit navigation bar.
+  </Step>
+  <Step title="Select your infrastructure mode">
+    Click the tile for the infrastructure you want: **AgyDesk Managed**, **Google Cloud (BYOC)**, or **Fly.io (BYOC)**. The selected tile is highlighted with a purple border.
+  </Step>
+  <Step title="Enter credentials (BYOC only)">
+    If you selected GCP or Fly.io, fill in the required credential fields that appear below the tile selector.
+  </Step>
+  <Step title="Save and apply">
+    Click **Save & Apply Config**. A green confirmation badge appears when AgyDesk has accepted the new configuration.
+  </Step>
+</Steps>
+
+<Note>
+  After saving, AgyDesk begins re-provisioning your pod on the new infrastructure. The old pod remains online until the new one is confirmed running to minimize downtime. You can monitor the transition in the Live Stream tab — the status badge will briefly show **Starting…** before returning to **Online**.
+</Note>
+
+<Warning>
+  Switching BYOC mode **recreates your pod** on entirely new infrastructure. Your automation workers and configuration are preserved, but **browser profile data** (cookies, saved passwords, extension state stored in `/data/chrome-profile`) may not transfer automatically between providers. Export any critical session data from the old pod before switching. See the [BYOC Guide](/billing/byoc) for a step-by-step profile migration procedure.
+</Warning>

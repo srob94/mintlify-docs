@@ -1,0 +1,223 @@
+---
+title: "Building and Running Automation Daemon Workers"
+sidebarTitle: "Daemon Workers"
+description: "Persistent TypeScript classes that run automation cycles on your cloud Chromium pod on a configurable interval, supervised by the AgyDesk daemon process."
+---
+
+Daemon workers are persistent TypeScript classes that run automation cycles on your cloud Chromium pod. Each worker connects to your pod's Chromium instance via the Chrome DevTools Protocol (CDP), performs its assigned task — scraping data, monitoring prices, scouting job listings — and then sleeps until the next interval. They run on a configurable schedule (every 30 seconds, every 5 minutes, or once daily) and are managed by the AgyDesk daemon supervisor, which monitors Chromium health and auto-registers any new worker files it finds in the `packages/daemon/src/workers/` directory.
+
+## Worker Structure
+
+Every daemon worker follows the same TypeScript class pattern: a constructor that binds to the CDP host and sets an export path, a `runCycle()` method that executes the automation logic, and `start()` / `stop()` methods that control the interval loop. The AgyDesk daemon supervisor calls `start()` with an interval in milliseconds and keeps the process alive indefinitely.
+
+```typescript
+import WebSocket from "ws";
+import * as http from "http";
+import * as fs from "fs";
+import * as path from "path";
+
+export class MyWorker {
+  private cdpHost: string;
+  private cdpPort: number;
+  private isRunning: boolean = false;
+  private exportPath: string;
+
+  constructor(cdpHost = "localhost", cdpPort = 9222) {
+    this.cdpHost = cdpHost;
+    this.cdpPort = cdpPort;
+    // Writes to the persistent volume when running inside the pod,
+    // or a local data/ folder when running locally.
+    const dockerExport = "/data/chrome-profile/exports/my-worker.json";
+    const localExport  = path.resolve(process.cwd(), "data/exports/my-worker.json");
+    this.exportPath = fs.existsSync("/data/chrome-profile") ? dockerExport : localExport;
+  }
+
+  private sleep(ms: number) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  private getRandomJitter(minMs = 800, maxMs = 2000): number {
+    return Math.floor(Math.random() * (maxMs - minMs + 1) + minMs);
+  }
+
+  /** Core automation logic — runs once per interval tick. */
+  public async runCycle(): Promise<void> {
+    console.log(`🤖 [MyWorker] Cycle started at ${new Date().toISOString()}`);
+
+    // 1. Discover the active Chromium tab via CDP
+    const targets: any[] = await new Promise((resolve) => {
+      http.get(`http://${this.cdpHost}:${this.cdpPort}/json/list`, (res) => {
+        let data = "";
+        res.on("data", (chunk) => (data += chunk));
+        res.on("end", () => {
+          try { resolve(JSON.parse(data)); } catch { resolve([]); }
+        });
+      }).on("error", () => resolve([]));
+    });
+
+    const tab = targets.find((t) => t.type === "page" && t.webSocketDebuggerUrl);
+    if (!tab) { console.warn("⚠️  No active tab found"); return; }
+
+    // 2. Navigate with a humanized delay
+    await this.sendCdpCommand(tab.webSocketDebuggerUrl, "Page.navigate", {
+      url: "https://example.com",
+    });
+    await this.sleep(this.getRandomJitter(2000, 3500));
+
+    // 3. Extract data and save to the persistent volume
+    const result = await this.sendCdpCommand(tab.webSocketDebuggerUrl, "Runtime.evaluate", {
+      expression: `document.title`,
+      returnByValue: true,
+    });
+
+    const exportDir = path.dirname(this.exportPath);
+    if (!fs.existsSync(exportDir)) fs.mkdirSync(exportDir, { recursive: true });
+    fs.writeFileSync(this.exportPath, JSON.stringify({ title: result?.result?.value, ts: new Date().toISOString() }, null, 2));
+    console.log(`💾 [MyWorker] Saved to ${this.exportPath}`);
+  }
+
+  /** Send a single CDP command over a fresh WebSocket connection. */
+  public async sendCdpCommand(wsUrl: string, method: string, params: any = {}): Promise<any> {
+    return new Promise((resolve, reject) => {
+      const ws = new WebSocket(wsUrl);
+      const id = Math.floor(Math.random() * 100000);
+      ws.on("open", () => ws.send(JSON.stringify({ id, method, params })));
+      ws.on("message", (msg) => {
+        const parsed = JSON.parse(msg.toString());
+        if (parsed.id === id) { ws.close(); resolve(parsed.result); }
+      });
+      ws.on("error", (err) => { ws.close(); reject(err); });
+      setTimeout(() => { try { ws.close(); } catch {} resolve(null); }, 8000);
+    });
+  }
+
+  /** Start the 24/7 interval loop. */
+  public start(intervalMs = 45000): void {
+    this.isRunning = true;
+    console.log(`🚀 [MyWorker] Loop active — interval: ${intervalMs / 1000}s`);
+    this.runCycle();
+    const timer = setInterval(() => {
+      if (!this.isRunning) { clearInterval(timer); return; }
+      this.runCycle();
+    }, intervalMs);
+  }
+
+  public stop(): void {
+    this.isRunning = false;
+    console.log("🛑 [MyWorker] Stopped.");
+  }
+}
+
+// Allow direct execution: `bun run my-worker.ts`
+if (typeof require !== "undefined" && require.main === module) {
+  const worker = new MyWorker();
+  worker.runCycle().then(() => console.log("✨ Single cycle complete."));
+}
+```
+
+## Creating Workers
+
+You have three paths to get a worker running:
+
+<Tabs>
+  <Tab title="Prompt-to-Bot">
+    Describe your automation goal in plain English and let AgyDesk's AI compiler generate a production TypeScript worker for you — no coding required. This is the fastest way to go from idea to running bot.
+
+    See the full guide: [Generate Automation Bots with AI](/automation/prompt-to-bot)
+  </Tab>
+  <Tab title="Workflow Recorder">
+    Demonstrate the workflow once inside your cloud browser and AgyDesk will capture every click and input, then synthesize a daemon worker that replays those actions on loop.
+
+    See the full guide: [Record and Replay Browser Workflows](/automation/workflow-recorder)
+  </Tab>
+  <Tab title="Write Manually">
+    Write a worker from scratch using the class pattern above when you need precise control over CDP interactions, custom data schemas, or advanced anti-bot logic.
+
+    <Steps>
+      <Step title="Create the worker file">
+        Add a new `.ts` file to `packages/daemon/src/workers/`. Name it with a `-worker.ts` suffix so the daemon supervisor auto-registers it.
+
+        ```bash
+        touch packages/daemon/src/workers/my-worker.ts
+        ```
+      </Step>
+      <Step title="Implement the class">
+        Copy the class pattern from the **Worker Structure** section above. Update the constructor's `exportPath`, replace the `runCycle()` body with your CDP automation logic, and adjust the default interval in `start()`.
+      </Step>
+      <Step title="Export a standalone entrypoint">
+        Add the `require.main === module` guard at the bottom of the file so you can test a single cycle without starting the full interval loop:
+
+        ```typescript
+        if (typeof require !== "undefined" && require.main === module) {
+          const worker = new MyWorker();
+          worker.runCycle().then(() => console.log("✨ Single cycle complete."));
+        }
+        ```
+      </Step>
+      <Step title="Run it">
+        ```bash
+        agydesk run my-worker
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+</Tabs>
+
+## Running a Worker
+
+<Steps>
+  <Step title="List available workers">
+    See every `.ts` file the daemon supervisor has registered:
+
+    ```bash
+    agydesk workers
+    ```
+
+    ```
+    🤖 [AgyDesk Active 24/7 Worker Daemons]:
+       1. 📄 amazon-price-watcher-worker.ts -> packages/daemon/src/workers/amazon-price-watcher-worker.ts
+       2. 📄 catalog-price-tracker-worker.ts -> packages/daemon/src/workers/catalog-price-tracker-worker.ts
+       3. 📄 remote-job-scout-worker.ts     -> packages/daemon/src/workers/remote-job-scout-worker.ts
+
+    ⚡ Run any worker with: agydesk run <name>
+    ```
+  </Step>
+  <Step title="Run the worker">
+    Pass the worker name without the `-worker.ts` suffix:
+
+    ```bash
+    agydesk run amazon-price-watcher
+    ```
+
+    The CLI resolves the file, spawns it with Bun, and streams all console output to your terminal.
+  </Step>
+  <Step title="Let it run — stop when ready">
+    The worker immediately executes its first `runCycle()`, then repeats on its configured interval. Your terminal streams live logs from the pod.
+
+    Press **Ctrl + C** to stop the worker process.
+  </Step>
+</Steps>
+
+## Built-in Example Workers
+
+AgyDesk ships three ready-to-run example workers you can start immediately or use as templates for your own automation.
+
+<CardGroup cols={3}>
+  <Card title="Amazon Price Watcher" icon="tag">
+    Navigates to an Amazon product page on a configurable interval, extracts the current price and product metadata, and writes the results to `data/exports/amazon-price-watcher.json` on your persistent volume.
+  </Card>
+  <Card title="Catalog Price Tracker" icon="list">
+    Connects to any e-commerce catalog URL via Puppeteer, scrapes all product titles and prices, and exports a structured JSON snapshot every 30 minutes — ideal for competitive pricing intelligence.
+  </Card>
+  <Card title="Remote Job Scout" icon="briefcase">
+    Polls remote job boards (starting with Hacker News Jobs) every 15 minutes, extracts featured listings, and saves them to `data/exports/remote-job-scout.json` so you never miss a new opportunity.
+  </Card>
+</CardGroup>
+
+<Note>
+  Workers are plain TypeScript files. The CLI uses **Bun** to execute them (`bun run <file>`). If Bun is not installed, you can run workers directly with `ts-node packages/daemon/src/workers/<name>-worker.ts` as a fallback.
+</Note>
+
+<Tip>
+  During development, set a short interval — 10 seconds — to confirm each cycle runs correctly before committing to a production schedule. Call `start(10_000)` temporarily, verify the output JSON, then switch to your real interval (e.g., `300_000` for every 5 minutes).
+</Tip>

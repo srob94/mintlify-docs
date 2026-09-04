@@ -1,0 +1,66 @@
+---
+title: "Manage Chrome Extensions in Your Cloud Pod"
+sidebarTitle: "Extensions"
+description: "Install, enable, and remove Chrome extensions that persist 24/7 in your cloud pod's browser profile across reboots, automation workers, and live stream sessions."
+---
+
+The Extension Manager tab lets you install, enable, and remove Chrome extensions that persist in your cloud pod's browser profile. Because the pod runs continuously in the cloud, your extensions stay active, authenticated, and processing around the clock — even when your laptop is off. You can browse a curated library of popular automation extensions or upload your own custom CRX file.
+
+## Installing an Extension
+
+<Steps>
+  <Step title="Open the Extension Manager tab">
+    In your dashboard, click the **Extension Manager** tab in the Workstation Cockpit navigation bar.
+  </Step>
+  <Step title="Find the extension you want">
+    Browse the extension library or use the search field to filter by name or category (e.g., "Lead Enrichment", "Outbound SDR", "AI Reasoning").
+  </Step>
+  <Step title="Click Install">
+    Click the **Install** button on the extension card. The dashboard installs the extension directly into the persistent browser profile of your active pod. An animated spinner confirms the install is in progress.
+  </Step>
+  <Step title="Confirm activation">
+    Once installed, the button changes to an **Active** badge with a green checkmark. The extension is live in the browser immediately — refresh your Live Stream tab to see it in the Chrome toolbar.
+  </Step>
+  <Step title="Upload a custom extension (optional)">
+    To install an extension not in the library, click **Upload CRX** and upload a `.crx` file or a zipped unpacked extension folder. AgyDesk copies it to `/data/chrome-profile/Extensions` on the pod volume.
+  </Step>
+</Steps>
+
+## Persistent Storage
+
+Extensions are stored on the pod's dedicated NVMe volume at `/data/chrome-profile`. This path is mounted as a persistent volume on both Fly.io and GCP pods, which means:
+
+- Extensions survive pod reboots and container restarts
+- Logged-in sessions and extension data (cookies, local storage, settings) are preserved
+- Extensions are available the instant the pod comes back online after a Stop/Start cycle
+
+The profile path is visible in the Extension Manager header:
+
+```
+/data/chrome-profile
+```
+
+<Note>
+  Extensions installed through the Extension Manager are available in **both** the live noVNC stream and all automation workers that connect via CDP. Your Puppeteer scripts will see the same extension environment as the browser you view in the stream.
+</Note>
+
+## Common Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Ad Blockers" icon="shield-halved">
+    Block ads and trackers for cleaner scraping results and faster page loads. Reduces noise in extracted data and lowers browser step credit consumption.
+  </Card>
+  <Card title="Cookie Editors" icon="cookie">
+    Inject and manage session cookies for sites that require authenticated sessions. Pair with `agydesk cookies inject` from the CLI for programmatic updates.
+  </Card>
+  <Card title="Form Auto-Fillers" icon="pen-field">
+    Pre-populate form fields to speed up repetitive data-entry workflows. Useful for outreach sequences, registration flows, and CRM data entry bots.
+  </Card>
+  <Card title="LinkedIn & Outreach Tools" icon="linkedin">
+    Run outbound SDR tools like Waalaxy 24/7 without laptop sleep interruptions. Connect sequencing, messaging, and CRM sync all run in the persistent cloud profile.
+  </Card>
+</CardGroup>
+
+<Warning>
+  Some extensions — particularly those that inject content scripts, modify network requests, or intercept CDP traffic — may interfere with automation workers. Always test extension compatibility in a staging pod before enabling in a production automation environment. You can temporarily disable an extension by clicking its **Active** button to toggle it off.
+</Warning>

@@ -1,0 +1,73 @@
+---
+title: "AgyDesk CLI: Control Your Cloud Pod from the Terminal"
+sidebarTitle: "Overview"
+description: "Install the agydesk CLI to record workflows, inject cookies, run automation workers, query AI, and check your cloud pod status."
+---
+
+The `agydesk` CLI connects your local terminal directly to your cloud Chromium pod. Use it to record browser workflows by demonstration, inject authenticated session cookies, run and manage TypeScript daemon workers, query the multi-model AI gateway, and inspect the live state of your pod — all without opening the dashboard.
+
+## Installation
+
+<CodeGroup>
+
+```bash npm
+npm install -g @agentdesk/cli
+```
+
+```bash yarn
+yarn global add @agentdesk/cli
+```
+
+```bash pnpm
+pnpm add -g @agentdesk/cli
+```
+
+</CodeGroup>
+
+## Verify Installation
+
+After installing, confirm the CLI is available by checking your pod status:
+
+```bash
+agydesk status
+```
+
+This prints your dashboard URL, noVNC live stream URL, CDP endpoint, and persistent volume path.
+
+## Available Commands
+
+| Command | Description |
+|---|---|
+| `agydesk status` | Print dashboard URL, noVNC URL, CDP endpoint, and volume path |
+| `agydesk browser-status` | Check if the cloud Chromium CDP is reachable |
+| `agydesk record <workflowName>` | Record browser interactions and synthesize a daemon worker |
+| `agydesk inject-cookies <filePath>` | Inject session cookies from a file into the cloud browser |
+| `agydesk run <workerName>` | Run a daemon worker by name |
+| `agydesk workers` | List all available daemon workers |
+| `agydesk ai <prompt>` | Query the multi-model AI gateway |
+
+## Global Options
+
+The `--port` (`-p`) and `--host` (`-h`) flags are available on any command that connects to the Chrome DevTools Protocol. They default to `localhost:9222`, which matches the standard cloud pod configuration.
+
+```bash
+agydesk browser-status --host myhost --port 9222
+```
+
+<Tip>
+  Most commands connect to your cloud pod via Chrome DevTools Protocol (CDP). Before running any automation command, verify your pod is reachable with `agydesk browser-status`.
+</Tip>
+
+## Explore CLI Features
+
+<CardGroup cols={3}>
+  <Card title="record" icon="circle-dot" href="/cli/record">
+    Record live browser interactions and synthesize a replayable TypeScript daemon worker.
+  </Card>
+  <Card title="inject-cookies" icon="cookie" href="/cli/inject-cookies">
+    Transfer authenticated sessions from your local machine to your cloud pod instantly.
+  </Card>
+  <Card title="ai" icon="sparkles" href="/cli/ai-gateway">
+    Query Gemini, Claude, GPT-4o, or DeepSeek from the terminal using the AI gateway.
+  </Card>
+</CardGroup>

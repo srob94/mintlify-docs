@@ -1,20 +1,11 @@
 {
-  "$schema": "https://mintlify.com/docs.json",
-  "name": "AgyDesk",
+  "projectType": "saas",
+  "projectName": "AgyDesk",
+  "projectDescription": "AgyDesk is a 24/7 cloud workstation platform that runs persistent, fully-graphical Chromium browser pods in the cloud, enabling automated browser workflows, AI-generated bots, and team collaboration without keeping a local machine running.",
   "theme": "luma",
-  "colors": {
-    "primary": "#6366F1",
-    "light": "#818CF8",
-    "dark": "#4338CA"
-  },
-  "favicon": "/favicon.svg",
-  "navbar": {
-    "primary": {
-      "type": "button",
-      "label": "Sign Up",
-      "href": "https://agydesk.com"
-    }
-  },
+  "primaryColor": "#6366F1",
+  "lightColor": "#818CF8",
+  "darkColor": "#4338CA",
   "navigation": {
     "tabs": [
       {
@@ -98,5 +89,36 @@
         ]
       }
     ]
-  }
+  },
+  "keyFeatures": [
+    "24/7 persistent cloud Chromium workstation with noVNC live stream",
+    "Prompt-to-Bot AI engine: generate automation daemons from plain English",
+    "Teach by Demonstration recorder: record browser actions and synthesize replayable workers",
+    "Cookie session migrator: transfer authenticated sessions to the cloud pod",
+    "Emergency 2FA relay: human-in-the-loop challenge handling for automated bots",
+    "Multi-cloud provisioning: AgyDesk Managed, GCP, or Fly.io BYOC",
+    "Multiplayer collaboration: shared live browser with presence cursors and role-based access",
+    "Enterprise integrations: HubSpot, Salesforce, Google Sheets, Airtable, Slack, Telegram, HeyGen, ElevenLabs, S3/GCS",
+    "Multi-model AI gateway: Gemini 2.5, Claude 3.7, GPT-4o, DeepSeek",
+    "Credit economy: granular per-action billing for browser steps, vision, AI media, and proxies"
+  ],
+  "publicApiSurface": [
+    "GET /api/workstation/status",
+    "POST /api/workstation/start",
+    "POST /api/workstation/stop",
+    "POST /api/workstation/reboot",
+    "POST /api/agent/synthesize",
+    "GET /api/agent/relay-2fa",
+    "POST /api/agent/relay-2fa",
+    "POST /api/checkout",
+    "POST /api/checkout/credits",
+    "POST /api/webhooks/stripe",
+    "agydesk record <workflowName>",
+    "agydesk inject-cookies <filePath>",
+    "agydesk run <workerName>",
+    "agydesk workers",
+    "agydesk ai <prompt>",
+    "agydesk browser-status",
+    "agydesk status"
+  ]
 }

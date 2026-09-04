@@ -1,0 +1,72 @@
+---
+title: "Live Cloud Browser Stream and Workstation Control"
+sidebarTitle: "Live Stream"
+description: "Access and interact with your persistent cloud Chromium pod in real time via an embedded noVNC session, with full workstation controls and status monitoring."
+---
+
+The Live Cloud Stream tab is your direct window into the cloud Chromium pod. It embeds a noVNC session running on port 6080 so you see and interact with the browser in real time — no local machine required. Every click, scroll, and keystroke you make in the stream is executed inside the persistent cloud pod, exactly as if you were sitting in front of it.
+
+## Accessing the Stream
+
+<Steps>
+  <Step title="Open your dashboard">
+    Navigate to [app.agydesk.com](https://app.agydesk.com) and sign in to your account.
+  </Step>
+  <Step title="Select your pod">
+    Use the pod selector in the top-right of the Workstation Cockpit to choose the cloud pod you want to view.
+  </Step>
+  <Step title="Click Live Cloud Stream">
+    Click the **Live Cloud Stream** tab in the navigation bar. The noVNC browser stream loads immediately inside the dashboard.
+  </Step>
+  <Step title="Interact with the browser">
+    Click anywhere in the stream panel to gain mouse focus. Type, scroll, and navigate just as you would in a local browser.
+  </Step>
+</Steps>
+
+## Workstation Controls
+
+The status panel to the right of the stream gives you direct control over the pod lifecycle. All three actions call authenticated API endpoints on your pod.
+
+| Control | Action | API Endpoint |
+|---------|--------|--------------|
+| **Start** | Boots the cloud pod container | `POST /api/workstation/start` |
+| **Stop** | Gracefully shuts down the pod | `POST /api/workstation/stop` |
+| **Reboot** | Restarts the pod (preserves profile) | `POST /api/workstation/reboot` |
+
+The Start button is disabled when the pod is already online. The Stop and Reboot buttons are disabled when the pod is offline, preventing accidental double-actions.
+
+## Status Indicator
+
+The status badge in the workstation panel updates every 10 seconds by polling `GET /api/workstation/status`. It queries the Chrome DevTools Protocol (CDP) version endpoint (`/json/version`) running on port 9222 and returns the following fields:
+
+| Field | Description |
+|-------|-------------|
+| `status` | `"online"` or `"offline"` |
+| `browser` | Browser name and version (e.g., `Chrome/133.0.0.0`) |
+| `protocol` | CDP protocol version |
+| `userAgent` | Full user agent string |
+| `wsUrl` | WebSocket debugger URL for CDP connections |
+
+When the pod is online, a live uptime counter appears next to the status badge so you can see how long the current session has been running.
+
+## Quick Prompt-to-Bot
+
+The Live Cloud Stream tab includes an embedded **Prompt-to-Bot** assistant panel below the stream. You can describe a new automation task and synthesize a worker bot without leaving the stream view — ideal for capturing ideas the moment you spot them while browsing. The generated TypeScript worker is saved immediately to your workers list and is ready to run via the CLI.
+
+## Direct Pod Access
+
+You can bypass the dashboard and access your noVNC stream directly at your pod's URL:
+
+```
+https://your-pod.fly.dev:6080/vnc.html?autoconnect=true&resize=scale&reconnect=true
+```
+
+Replace `your-pod` with your actual pod subdomain, which is shown in your Cloud Settings tab.
+
+<Tip>
+  Use the CDP endpoint at port 9222 for programmatic control of the browser. Connect any Puppeteer or Playwright script by pointing it to `browserURL: 'http://your-pod.fly.dev:9222'` instead of launching a new browser instance. This lets your local scripts drive the always-on cloud pod without keeping anything running locally.
+</Tip>
+
+<Warning>
+  Do not close the browser tab while a workflow recording is in progress. Closing the tab interrupts the noVNC WebSocket connection and may corrupt the in-flight recording session. Use the Stop Recording button in the CLI (`agydesk record stop`) before navigating away.
+</Warning>

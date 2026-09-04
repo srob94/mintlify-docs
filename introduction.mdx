@@ -1,0 +1,62 @@
+---
+title: "AgyDesk: 24/7 Cloud Browser Workstation"
+sidebarTitle: "Introduction"
+description: "AgyDesk runs a persistent Chromium pod in the cloud — automate browsers, build AI bots, and collaborate with your team. No local machine needed."
+---
+
+AgyDesk is a 24/7 cloud browser workstation that keeps a full Chromium browser running in the cloud so you never have to. Connect to your pod through a live noVNC stream or the Chrome DevTools Protocol (CDP), build AI-generated automation bots with a single prompt, record workflows by demonstration, and share access securely with your team — all from one dashboard, with no local machine required.
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Spin up your cloud pod, install the CLI, and run your first automation in minutes.
+  </Card>
+  <Card title="Live Stream" icon="display" href="/dashboard/live-stream">
+    View and interact with your cloud Chromium browser through the built-in noVNC stream.
+  </Card>
+  <Card title="Prompt-to-Bot" icon="robot" href="/automation/prompt-to-bot">
+    Describe what you want in plain English and AgyDesk generates a full TypeScript daemon worker.
+  </Card>
+  <Card title="API Overview" icon="code" href="/api/overview">
+    Integrate AgyDesk into your own stack with the REST API and CDP endpoint.
+  </Card>
+</CardGroup>
+
+## What You Can Do
+
+<CardGroup cols={3}>
+  <Card title="Live Browser Streaming" icon="video">
+    Watch and control your cloud Chromium pod in real time through the noVNC stream — no download, no VPN, just a browser tab.
+  </Card>
+  <Card title="Prompt-to-Bot" icon="wand-magic-sparkles">
+    Type a plain-English goal and let AgyDesk's AI synthesize a production-ready TypeScript daemon worker that runs 24/7.
+  </Card>
+  <Card title="Workflow Recording" icon="circle-dot">
+    Teach AgyDesk by demonstration: interact with your cloud browser while the CLI records every click and input, then replay it as an autonomous worker.
+  </Card>
+  <Card title="Cookie Session Migration" icon="cookie">
+    Export cookies from your local browser and inject them directly into your cloud pod with `agydesk inject-cookies` — no re-login required.
+  </Card>
+  <Card title="Team Collaboration" icon="users">
+    Invite teammates, assign roles with RBAC, and share your cloud pod or specific workers — all managed from the Team tab.
+  </Card>
+  <Card title="Integrations" icon="plug">
+    Connect to HubSpot, Salesforce, Google Sheets, Airtable, Slack, Telegram, HeyGen, ElevenLabs, Zapier, Make, and cloud storage — out of the box.
+  </Card>
+</CardGroup>
+
+## How It Works
+
+<Steps>
+  <Step title="Sign Up and Choose a Plan">
+    Create your account at [agydesk.com](https://agydesk.com) and select the plan that fits your needs — Starter ($49/mo), Pro ($129/mo), or Agency ($349/mo). Each plan includes a dedicated cloud Chromium pod and a monthly credit allocation.
+  </Step>
+  <Step title="Your Cloud Chromium Pod Spins Up Automatically">
+    Once your plan is active, AgyDesk provisions a persistent Chromium browser in the cloud. Your browser profile is saved between sessions, so logins, extensions, and settings are always intact when you return.
+  </Step>
+  <Step title="Access via Live Stream or CDP">
+    Open the **Live Cloud Stream** tab in your dashboard to see your browser in real time over noVNC (port 6080), or connect programmatically via the Chrome DevTools Protocol endpoint (port 9222) for full automation access.
+  </Step>
+  <Step title="Build and Run Automations">
+    Use **Prompt-to-Bot** to generate a worker from a plain-English description, record a workflow with `agydesk record`, or write a custom TypeScript daemon worker. Deploy it with `agydesk run` and let it work 24/7 — no local machine needed.
+  </Step>
+</Steps>

@@ -1,0 +1,144 @@
+---
+title: "Record Browser Workflows and Synthesize Automation Workers"
+sidebarTitle: "record"
+description: "Use agydesk record to capture live browser interactions via CDP and compile them into a 24/7 replayable TypeScript daemon worker."
+---
+
+`agydesk record` connects to your live cloud browser, injects an interaction observer via CDP, and records every click and input you make in real time. When you press Enter in the terminal, AgyDesk synthesizes a fully replayable TypeScript daemon worker — complete with anti-bot humanization — ready to run 24/7 in your cloud pod.
+
+## Usage
+
+```bash
+agydesk record <workflowName> [options]
+```
+
+## Options
+
+<ParamField path="workflowName" type="string" required>
+  The name for this workflow. AgyDesk uses this name to create the output file `<workflowName>-worker.ts` inside `packages/daemon/src/workers/`.
+</ParamField>
+
+<ParamField query="--port, -p" type="number" default="9222">
+  The CDP port your cloud Chromium pod is listening on.
+</ParamField>
+
+<ParamField query="--host, -h" type="string" default="localhost">
+  The CDP host your cloud Chromium pod is running on.
+</ParamField>
+
+## Step-by-Step
+
+<Steps>
+  <Step title="Verify your pod is running">
+    Confirm CDP is reachable before starting a recording session:
+
+    ```bash
+    agydesk browser-status
+    ```
+  </Step>
+  <Step title="Navigate to the target page">
+    Open the **Live Stream** tab in your AgyDesk dashboard and navigate your cloud browser to the exact page you want to automate — for example, a LinkedIn search results page or a HubSpot contact list.
+  </Step>
+  <Step title="Start recording">
+    In your terminal, run:
+
+    ```bash
+    agydesk record my-workflow
+    ```
+
+    The CLI connects to CDP, injects the interaction observer, and begins capturing events.
+  </Step>
+  <Step title="Interact with the browser">
+    Switch to the Live Stream tab and perform the actions you want to automate — click buttons, fill inputs, navigate pages. Every interaction is captured in sequence.
+  </Step>
+  <Step title="Stop recording">
+    Return to your terminal and press **Enter** to end the session. AgyDesk finalises the event log and begins worker synthesis.
+  </Step>
+  <Step title="Review the generated worker">
+    AgyDesk writes the compiled worker to:
+
+    ```
+    packages/daemon/src/workers/my-workflow-worker.ts
+    ```
+  </Step>
+  <Step title="Run your new worker">
+    Execute the worker immediately with:
+
+    ```bash
+    agydesk run my-workflow
+    ```
+  </Step>
+</Steps>
+
+<Note>
+  The recorder captures `click` and `change` events on the active page. Make sure you navigate to the correct starting URL in your cloud browser before running `agydesk record`.
+</Note>
+
+## What Gets Generated
+
+AgyDesk compiles your recorded interactions into a structured TypeScript daemon worker. The generated class follows the standard daemon interface with `start()`, `stop()`, and `runCycle()` methods, and includes anti-detection humanization by default:
+
+```typescript
+import puppeteer, { Browser, Page } from "puppeteer-core";
+
+export class MyWorkflowWorker {
+  private browser: Browser | null = null;
+  private page: Page | null = null;
+  private running = false;
+
+  async start(): Promise<void> {
+    this.browser = await puppeteer.connect({
+      browserURL: "http://localhost:9222",
+    });
+    this.page = await this.browser.newPage();
+    this.running = true;
+    console.log("▶ MyWorkflowWorker started");
+    await this.runCycle();
+  }
+
+  async stop(): Promise<void> {
+    this.running = false;
+    await this.browser?.close();
+    console.log("■ MyWorkflowWorker stopped");
+  }
+
+  async runCycle(): Promise<void> {
+    if (!this.page) return;
+
+    // Recorded step 1 — navigate to target
+    await this.page.goto("https://example.com/dashboard", {
+      waitUntil: "networkidle2",
+    });
+
+    // Anti-detection: randomised jitter before each interaction
+    await this.page.waitForTimeout(800 + Math.random() * 600);
+
+    // Recorded step 2 — click the primary action button
+    await this.page.click("#primary-action");
+
+    // Anti-detection: human-like pause between actions
+    await this.page.waitForTimeout(1200 + Math.random() * 800);
+
+    // Recorded step 3 — fill a form field
+    await this.page.type("#search-input", "automation target", { delay: 80 });
+
+    // Export cycle results to JSON
+    const results = await this.page.evaluate(() => {
+      return Array.from(document.querySelectorAll(".result-item")).map(
+        (el) => ({ text: (el as HTMLElement).innerText })
+      );
+    });
+
+    console.log(`✅ Cycle complete — ${results.length} results captured`);
+  }
+}
+
+const worker = new MyWorkflowWorker();
+worker.start();
+```
+
+<Tip>
+  Recorded workers include anti-bot humanization — random mouse jitter and variable delays between steps — by default. This significantly reduces detection rates on sites with bot-protection systems.
+</Tip>
+
+For a deeper walkthrough of the workflow recorder, including how to edit generated workers and schedule recurring cycles, see the [Workflow Recorder guide](/automation/workflow-recorder).

@@ -1,0 +1,144 @@
+---
+title: "Billing API: Create Subscription and Credit Checkout Sessions"
+sidebarTitle: "Billing"
+description: "Create Stripe Checkout sessions for AgyDesk subscriptions and credit packs, then redirect users to complete payment securely on Stripe-hosted pages."
+---
+
+The Billing API creates Stripe Checkout sessions for subscriptions and credit purchases. Your server calls these endpoints, receives a Stripe-hosted checkout URL, and redirects the user there to complete payment securely through Stripe. No card data ever touches your own servers.
+
+---
+
+## POST /api/checkout
+
+Create a Stripe subscription checkout session for one of the three AgyDesk plans. After the user completes payment on the Stripe-hosted page, they are redirected to your `successUrl` and AgyDesk automatically provisions their cloud pod.
+
+**Plan reference**
+
+| Plan | Price | Workstations |
+|------|-------|--------------|
+| `starter` | $49 / month | 1 |
+| `pro` | $129 / month | 3 |
+| `agency` | $349 / month | 10 |
+
+**Request body**
+
+<ParamField body="planId" type="string" required>
+  The plan to subscribe to. Must be `"starter"`, `"pro"`, or `"agency"`.
+</ParamField>
+
+<ParamField body="customerEmail" type="string">
+  Pre-fill the customer's email address on the Stripe Checkout page. If omitted, Stripe prompts the customer to enter their email.
+</ParamField>
+
+<ParamField body="successUrl" type="string" required>
+  The URL Stripe redirects the customer to after a successful payment. You can include `{CHECKOUT_SESSION_ID}` as a placeholder and Stripe will substitute the session ID.
+</ParamField>
+
+<ParamField body="cancelUrl" type="string" required>
+  The URL Stripe redirects the customer to if they abandon the checkout page.
+</ParamField>
+
+**Example request**
+
+```bash
+curl -s -X POST https://agydesk.com/api/checkout \
+  -H "Authorization: Bearer <your-api-token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "planId": "pro",
+    "customerEmail": "alex@example.com",
+    "successUrl": "https://yourapp.com/welcome?session={CHECKOUT_SESSION_ID}",
+    "cancelUrl": "https://yourapp.com/pricing?canceled=true"
+  }'
+```
+
+**Response**
+
+```json
+{
+  "sessionId": "cs_live_a1b2c3d4e5f6g7h8i9j0...",
+  "url": "https://checkout.stripe.com/c/pay/cs_live_a1b2c3d4...",
+  "plan": {
+    "id": "pro",
+    "name": "Pro",
+    "price": 129
+  }
+}
+```
+
+<ResponseField name="url" type="string">
+  The Stripe Checkout URL. Redirect your user to this URL to complete the subscription payment.
+</ResponseField>
+
+<ResponseField name="sessionId" type="string">
+  The Stripe Checkout session ID. Store this to correlate the payment event with the customer in your own system.
+</ResponseField>
+
+---
+
+## POST /api/checkout/credits
+
+Create a one-time Stripe Checkout session for a credit pack purchase. Credits are added to your account balance immediately after payment is confirmed. Use credits to pay for bot synthesis, browser automation steps, vision OCR, AI voice, video generation, and proxy bandwidth.
+
+**Credit pack reference**
+
+| Tier | Price | Credits | Bonus |
+|------|-------|---------|-------|
+| `boost` | $20 | 2,000 cr | — |
+| `growth` | $50 | 6,000 cr | +20% |
+| `scale` | $100 | 15,000 cr | +50% |
+
+**Request body**
+
+<ParamField body="tierId" type="string" required>
+  The credit pack to purchase. Must be `"boost"`, `"growth"`, or `"scale"`.
+</ParamField>
+
+<ParamField body="customerEmail" type="string">
+  Pre-fill the customer's email address on the Stripe Checkout page.
+</ParamField>
+
+<ParamField body="successUrl" type="string" required>
+  The URL Stripe redirects the customer to after a successful payment.
+</ParamField>
+
+<ParamField body="cancelUrl" type="string" required>
+  The URL Stripe redirects the customer to if they abandon the checkout page.
+</ParamField>
+
+**Example request**
+
+```bash
+curl -s -X POST https://agydesk.com/api/checkout/credits \
+  -H "Authorization: Bearer <your-api-token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "tierId": "growth",
+    "customerEmail": "alex@example.com",
+    "successUrl": "https://yourapp.com/dashboard?credits_added=6000",
+    "cancelUrl": "https://yourapp.com/dashboard?canceled=true"
+  }'
+```
+
+**Response**
+
+```json
+{
+  "sessionId": "cs_live_z9y8x7w6v5u4t3s2r1q0...",
+  "url": "https://checkout.stripe.com/c/pay/cs_live_z9y8x7...",
+  "pack": {
+    "id": "growth",
+    "name": "Growth Pack",
+    "price": 50,
+    "credits": 6000
+  }
+}
+```
+
+<ResponseField name="url" type="string">
+  The Stripe Checkout URL. Redirect your user here to complete the credit purchase.
+</ResponseField>
+
+<ResponseField name="sessionId" type="string">
+  The Stripe Checkout session ID for this one-time payment.
+</ResponseField>

@@ -1,0 +1,65 @@
+---
+title: "Manage Your Team with Roles and Access Controls"
+sidebarTitle: "Team & RBAC"
+description: "Invite team members, assign roles, set per-user monthly credit caps, and control which cloud pods each member can access — all from the Team & RBAC tab."
+---
+
+The Team & RBAC tab lets you invite team members, assign roles, set per-user credit limits, and control which cloud pods each member can access. Credits are pooled at the organization level and allocated to individuals via monthly caps, giving you precise budget governance across your entire team without shared credentials or overprovisioning.
+
+## Roles
+
+AgyDesk has four built-in roles. Assign the most restrictive role that still lets each team member do their job.
+
+| Role | Permissions |
+|------|-------------|
+| **Owner** | Full access to all pods, billing management, RBAC configuration, BYOC infrastructure settings, and plan changes. One per account. |
+| **Admin** | Invite and remove team members, assign and change roles, manage pod assignments, and configure integrations. Cannot change billing or BYOC settings. |
+| **Operator** | Run and stop workers, view and interact with the live stream, install and manage extensions, and trigger bot synthesis. Cannot manage team membership. |
+| **Spectator** | View the live stream in read-only mode. Cannot click, interact with the stream, run workers, or change any settings. |
+
+## Inviting Members
+
+<Steps>
+  <Step title="Open the Team & RBAC tab">
+    In your dashboard, click the **Team & RBAC** tab in the Workstation Cockpit navigation bar.
+  </Step>
+  <Step title="Click Invite Member">
+    Click the **Invite Team Member** button in the top-right of the team panel.
+  </Step>
+  <Step title="Enter member details">
+    Fill in the invitee's full name and work email address in the invite form.
+  </Step>
+  <Step title="Select a role">
+    Choose a role from the dropdown: **Admin**, **Operator**, or **Spectator**. Owner-level access cannot be granted via invite.
+  </Step>
+  <Step title="Set a monthly credit cap (optional)">
+    Enter a maximum credit amount the member may consume per billing cycle. Leave blank to allow unlimited access to the team credit pool.
+  </Step>
+  <Step title="Send the invitation">
+    Click **Send Invitation**. The invitee receives an email with a sign-up link. Their status in the member roster shows **INVITED** until they accept and activate their account.
+  </Step>
+</Steps>
+
+## Per-Plan Seat Limits
+
+The number of team members you can add depends on your plan:
+
+| Plan | Included Seats |
+|------|---------------|
+| Starter | 1 seat (Owner only) |
+| Pro | 5 seats |
+| Agency | 25 seats |
+
+To add more seats beyond the Agency limit, contact [support@agydesk.com](mailto:support@agydesk.com) for an Enterprise arrangement.
+
+## Security Settings
+
+The Team & RBAC tab also surfaces security controls for your organization:
+
+- **Enforce 2FA** — Require all team members to enable two-factor authentication before accessing any pod. Members who have not enabled 2FA are locked out until they comply.
+- **Session Recording** — Enable 1080p audit video recording of all live stream sessions. Recordings are stored on your pod's persistent volume and are accessible to Admins and Owners.
+- **IP Allowlists** — Restrict dashboard access to a list of approved IP addresses or CIDR ranges. Any login attempt from an unlisted IP is blocked before authentication. *(Agency plan only.)*
+
+<Note>
+  **Pro and Agency plans** support multiplayer browser sessions. Multiple team members can view the same live stream simultaneously. Each connected user is shown with a distinct colored cursor and display name overlay. Any Operator or higher can request control transfer with a single click — the current controller sees a prompt to approve or deny. This is ideal for pair-automation sessions, live demos, and training.
+</Note>

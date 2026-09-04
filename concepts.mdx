@@ -1,0 +1,123 @@
+---
+title: "AgyDesk Core Concepts and Terminology"
+sidebarTitle: "Concepts"
+description: "Understand the key building blocks of AgyDesk — cloud pods, CDP, daemon workers, credits, and BYOC — before you start building automations."
+---
+
+AgyDesk is built on a small set of well-defined primitives. Once you understand how they fit together — a persistent cloud browser pod, an automation interface (CDP), workers that drive it, and a credit system that meters AI operations — everything else in the platform makes intuitive sense. Read through these concepts before diving into automation guides or the API reference.
+
+## Cloud Pod
+
+Your **cloud pod** is a persistent Chromium browser instance running 24/7 on AgyDesk's infrastructure (or your own cloud, if you use BYOC). It is not a screenshot service or a headless stub — it is a full, graphical Chromium browser with a real display, saved profile data, and persistent storage.
+
+Two network interfaces are always available on your pod:
+
+| Interface | Port | Purpose |
+|---|---|---|
+| **noVNC stream** | 6080 | Live visual access to your browser from any browser tab |
+| **CDP endpoint** | 9222 | Programmatic control via Chrome DevTools Protocol |
+
+Your browser profile — cookies, local storage, installed extensions, and saved passwords — persists between sessions. Log in to a service once and your pod stays authenticated indefinitely.
+
+## Chrome DevTools Protocol (CDP)
+
+The **Chrome DevTools Protocol** is the low-level automation interface built into every Chromium browser. AgyDesk exposes your pod's CDP endpoint directly so you can control it with any CDP-compatible library or tool.
+
+Through CDP you can:
+
+- Open and close tabs, navigate to URLs
+- Inject and evaluate JavaScript in page context
+- Intercept and modify network requests
+- Capture screenshots or full-page PDFs
+- Extract DOM content and structured data
+- Emulate devices, geolocation, and network conditions
+
+The CLI's `agydesk browser-status` command confirms your CDP connection, and the **CDP Logs** dashboard tab shows a live stream of every protocol event your pod emits.
+
+## Daemon Worker
+
+A **daemon worker** is a TypeScript class that runs an automation loop against your cloud pod. Workers follow a consistent structure:
+
+```typescript
+export class MyWorker {
+  private intervalId?: ReturnType<typeof setInterval>;
+
+  start(intervalMs: number = 60000) {
+    console.log("Worker started");
+    this.runCycle();
+    this.intervalId = setInterval(() => this.runCycle(), intervalMs);
+  }
+
+  stop() {
+    if (this.intervalId) clearInterval(this.intervalId);
+    console.log("Worker stopped");
+  }
+
+  private async runCycle() {
+    // Connect to CDP, perform browser steps, handle results
+  }
+}
+```
+
+- **`start(intervalMs)`** — begins the automation loop, executing `runCycle()` on the given interval
+- **`stop()`** — clears the interval and cleanly shuts down the worker
+- **`runCycle()`** — the unit of work; one complete automation pass (navigate, interact, extract, report)
+
+Workers live in `packages/daemon/src/workers/` and are executed with `agydesk run <name>`. The AgyDesk daemon supervisor can also load and manage multiple workers simultaneously.
+
+## Prompt-to-Bot
+
+**Prompt-to-Bot** is AgyDesk's AI-powered bot generator. Instead of writing code or recording interactions, you describe your automation goal in plain English and AgyDesk's AI synthesizes a complete, production-ready TypeScript daemon worker.
+
+Example prompt:
+> "Every 30 minutes, go to my HubSpot contacts page, find any contact added in the last hour, and post their name and email to my Slack channel #new-leads."
+
+AgyDesk sends the prompt to its multi-model AI gateway (Gemini 2.5, Claude 3.7, GPT-4o, or DeepSeek V3), generates the worker code, and saves it to your workers directory — ready to run immediately with `agydesk run`. Bot synthesis costs **50 credits**.
+
+## Workflow Recorder
+
+The **Workflow Recorder** lets you teach AgyDesk by demonstration rather than by writing code. Run `agydesk record <workflow-name>` and the CLI connects to your cloud pod via CDP, silently capturing every browser event — clicks, form inputs, navigation, and keypresses — as you work normally in the Live Stream tab.
+
+When you press **Enter** to finish recording, AgyDesk synthesizes your captured events into a TypeScript daemon worker. The result is a replayable, editable worker that reproduces your exact session steps on demand or on a schedule.
+
+<Accordion title="How the recorder captures interactions">
+  The recorder attaches CDP listeners to the `Input` and `Page` domains. Every `dispatchMouseEvent`, `dispatchKeyEvent`, and `navigate` call is timestamped and stored in memory. At the end of the session, the compiled sequence is passed to the AI synthesis pipeline, which adds error handling, retry logic, and configurable interval support before writing the final `.ts` worker file.
+</Accordion>
+
+## Credits
+
+**Credits** are the currency for AI-powered and resource-intensive operations on AgyDesk. Your plan includes a monthly credit allocation; operations deduct from that balance in real time.
+
+| Operation | Credit Cost |
+|---|---|
+| Bot synthesis (Prompt-to-Bot) | 50 cr |
+| Browser automation step | 1 cr |
+| Vision / OCR analysis | 5 cr |
+| HeyGen video generation | 150 cr |
+| ElevenLabs voice synthesis | 25 cr |
+| Proxy bandwidth (per GB) | 300 cr |
+
+When your monthly allocation runs low, top up with a one-time credit pack:
+
+| Pack | Price | Credits |
+|---|---|---|
+| **Boost** | $20 | 2,000 cr |
+| **Growth** | $50 | 6,000 cr (+20% bonus) |
+| **Scale** | $100 | 15,000 cr (+50% bonus) |
+
+Credits never expire and roll over month to month.
+
+## BYOC (Bring Your Own Cloud)
+
+By default, AgyDesk hosts your pod on its own managed infrastructure. **BYOC** lets you run your pod inside your own cloud account instead, keeping data sovereignty and using your existing cloud spend commitments.
+
+AgyDesk supports two BYOC providers:
+
+- **GCP BYOC** — deploys your pod as a Cloud Run container inside your Google Cloud project
+- **Fly.io BYOC** — deploys your pod as a Fly Machine inside your Fly.io organization
+
+Configure BYOC from the **Cloud Settings** tab. AgyDesk handles provisioning, health monitoring, and updates — you supply the cloud account credentials and the pod runs in your environment.
+
+<Tip>
+  The dashboard and the CLI are two views of the same underlying system. The dashboard gives you visual control and real-time monitoring; the CLI gives you scriptable, local access. You can use both simultaneously — for example, watch the Live Stream tab while `agydesk record` captures your interactions in the terminal.
+</Tip>

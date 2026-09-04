@@ -1,0 +1,61 @@
+---
+title: "AgyDesk Integrations: Connect Your Automation Stack"
+sidebarTitle: "Overview"
+description: "Connect AgyDesk to HubSpot, Salesforce, Google Sheets, Slack, HeyGen, S3, and more from the Integrations Hub tab in your dashboard."
+---
+
+AgyDesk connects to the tools you already use — CRMs, data tables, communication platforms, AI media services, automation bridges, and cloud storage. All integrations are configured per-workspace from the **Integrations Hub** tab in your dashboard and are immediately available to every daemon worker and AI-generated bot running on your pod, with no additional configuration required in your worker code.
+
+## Integration Categories
+
+<CardGroup cols={2}>
+  <Card title="CRM" icon="building" href="/integrations/crm">
+    **HubSpot** and **Salesforce** — push scraped leads, create contacts, log activities, and map browser discoveries directly into your CRM pipeline without manual data entry.
+  </Card>
+  <Card title="Data & Spreadsheets" icon="table">
+    **Google Sheets** and **Airtable** — stream structured lead data, price tracking results, and directory exports directly into collaborative spreadsheets and relational bases with live two-way sync.
+  </Card>
+  <Card title="Notifications" icon="bell" href="/integrations/notifications">
+    **Slack** and **Telegram** — receive real-time Block-Kit alerts for task completions, new leads, 2FA challenges, and error reports. Keep your team informed without watching the dashboard.
+  </Card>
+  <Card title="AI Media" icon="wand-magic-sparkles">
+    **HeyGen** and **ElevenLabs** — trigger personalized AI avatar video renders and neural voice note dispatches directly from your automation workers. Consumed as credits per action.
+  </Card>
+  <Card title="Automation Bridges" icon="arrows-rotate">
+    **Zapier** and **Make** — fire outbound webhooks to trigger multi-app workflows whenever an AgyDesk worker completes a run, hits a milestone, or raises an alert.
+  </Card>
+  <Card title="Cloud Storage" icon="cloud" href="/integrations/storage">
+    **AWS S3** and **Google Cloud Storage** — archive scraped JSON exports, screenshots, session recordings, and PDF files to dedicated secure buckets automatically from your workers.
+  </Card>
+</CardGroup>
+
+## How Integrations Work
+
+Integrations are configured once at the workspace level and stored encrypted in AgyDesk's secrets vault. When a daemon worker or AI-generated bot needs to post a lead to HubSpot or upload a file to S3, it reads the integration credentials automatically from the pod environment — you do not need to hard-code API keys or webhook URLs in your worker scripts.
+
+All integrations are scoped to your workspace. Team members with **Operator** role and above can use configured integrations in their workers. Only **Admins** and **Owners** can add, update, or remove integration credentials in the Integrations Hub.
+
+## Connecting an Integration
+
+<Steps>
+  <Step title="Open the Integrations Hub">
+    In your AgyDesk dashboard, click the **Integrations Hub** tab in the left sidebar. You will see all available integrations organized by category, each showing a **Connected** or **Disconnected** status badge.
+  </Step>
+  <Step title="Find your service">
+    Locate the integration you want to connect. Click the **Connect** button on its card. Services using OAuth (HubSpot, Salesforce, Google Sheets) will open an authorization popup. Services using API keys (Airtable, HeyGen, ElevenLabs, S3) will show a credential entry form.
+  </Step>
+  <Step title="Authorize or enter credentials">
+    For OAuth services, complete the authorization flow in the popup and grant the requested permissions. For API key services, paste your key or token into the provided fields.
+  </Step>
+  <Step title="Save and verify">
+    Click **Save**. AgyDesk will validate your credentials by making a test API call to the service. A green **Connected** badge confirms the integration is active and available to your workers.
+  </Step>
+</Steps>
+
+## Integration Guides
+
+For detailed setup instructions and code examples, see the dedicated pages for each integration category:
+
+- [CRM — HubSpot & Salesforce](/integrations/crm)
+- [Notifications — Slack & Telegram](/integrations/notifications)
+- [Cloud Storage — S3 & GCS](/integrations/storage)

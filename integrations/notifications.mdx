@@ -1,0 +1,133 @@
+---
+title: "Set Up Slack and Telegram Alerts for Your Automation Bots"
+sidebarTitle: "Notifications"
+description: "Configure Slack and Telegram to receive real-time alerts from AgyDesk workers — including 2FA challenges, task completions, and error reports."
+---
+
+Configure Slack or Telegram notifications to receive real-time alerts from your automation workers — including 2FA challenges, task completions, newly scraped leads, and error reports. Workers on AgyDesk can dispatch rich Block-Kit messages to Slack channels or push instant notifications to a Telegram bot that you control, keeping your team informed without requiring anyone to watch the live stream.
+
+## Slack Setup
+
+<Steps>
+  <Step title="Create a Slack incoming webhook">
+    Open your Slack workspace and go to [api.slack.com/apps](https://api.slack.com/apps). Click **Create New App** → **From scratch**, give it a name (e.g., `AgyDesk Alerts`), and select your workspace. In the app settings, click **Incoming Webhooks**, toggle **Activate Incoming Webhooks** to on, and click **Add New Webhook to Workspace**. Select the channel you want alerts to post to (e.g., `#ops-automation`) and click **Allow**.
+  </Step>
+  <Step title="Copy the webhook URL">
+    After authorizing, Slack shows a webhook URL in the format `https://hooks.slack.com/services/T.../B.../...`. Copy this URL.
+  </Step>
+  <Step title="Paste into AgyDesk">
+    In your AgyDesk dashboard, go to **Integrations Hub** → **Slack Ops & 2FA Bot** → **Connect**. Paste the webhook URL into the **Incoming Webhook URL** field and optionally specify a default channel name.
+  </Step>
+  <Step title="Save and test">
+    Click **Save**. AgyDesk sends a test Block-Kit message to your channel confirming the connection. The Slack card shows a green **Connected** badge with your channel name.
+  </Step>
+</Steps>
+
+**Example Slack alert from a worker:**
+
+```
+🎯 New Qualified Lead — OmniGrowth Media Labs
+Category: DTC Retention & Klaviyo Agency | Location: Austin, TX
+Email: partnerships@omnigrowth.media
+Source: Placr Directory Scraper | Scraped: just now
+[⚡ Open in AgyDesk]  [View in HubSpot]
+```
+
+## Telegram Setup
+
+<Steps>
+  <Step title="Create a Telegram bot via BotFather">
+    Open Telegram and search for `@BotFather`. Send the command `/newbot` and follow the prompts to give your bot a name (e.g., `AgyDesk Alerts`) and a username ending in `_bot`. BotFather will respond with your **bot token** in the format `123456789:ABCdef...`. Save this token.
+  </Step>
+  <Step title="Get your chat ID">
+    Start a conversation with your new bot by searching for it in Telegram and clicking **Start**. Then open a browser and visit `https://api.telegram.org/bot<YOUR_TOKEN>/getUpdates`. Look for the `"chat":{"id":...}` field in the JSON response — this is your **chat ID**. For group chats, add the bot to the group first and the chat ID will be a negative number.
+  </Step>
+  <Step title="Enter credentials in AgyDesk">
+    In your AgyDesk dashboard, go to **Integrations Hub** → **Telegram Mobile Relay** → **Connect**. Enter your **Bot Token** and your **Chat ID** in the provided fields.
+  </Step>
+  <Step title="Save and test">
+    Click **Save**. AgyDesk sends a test message to your Telegram chat. The Telegram card shows **Connected** with your chat ID.
+  </Step>
+</Steps>
+
+## 2FA Alerts
+
+When an automation worker encounters a two-factor authentication challenge on a site (e.g., a TOTP prompt or an SMS code request), AgyDesk automatically fires an alert to all configured notification channels. The alert includes a screenshot of the 2FA screen and a one-tap approval button for responding without opening the live stream. See [2FA Relay](/automation/2fa-relay) for full configuration details on handling 2FA challenges programmatically.
+
+## Sending Notifications from Workers
+
+Use the Slack webhook URL from your pod environment to dispatch formatted alerts directly from any TypeScript daemon worker:
+
+```typescript
+// workers/slack-notifier.ts
+// Sends a formatted Slack Block-Kit alert when a lead batch is scraped
+
+interface LeadBatchResult {
+  count: number;
+  source: string;
+  topLead: { name: string; email: string; category: string };
+}
+
+async function notifySlack(result: LeadBatchResult): Promise<void> {
+  const webhookUrl = process.env.SLACK_WEBHOOK_URL;
+  if (!webhookUrl) {
+    console.log("[Slack] SLACK_WEBHOOK_URL not set — connect Slack in Integrations Hub.");
+    return;
+  }
+
+  const payload = {
+    text: `📋 Scraping batch complete — ${result.count} new leads`,
+    blocks: [
+      {
+        type: "header",
+        text: {
+          type: "plain_text",
+          text: `✅ Scraping Batch Complete — ${result.count} Leads`,
+          emoji: true,
+        },
+      },
+      {
+        type: "section",
+        fields: [
+          { type: "mrkdwn", text: `*Source:*\n${result.source}` },
+          { type: "mrkdwn", text: `*New Leads:*\n${result.count}` },
+        ],
+      },
+      {
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: `*Top Lead:* ${result.topLead.name} (${result.topLead.category})\n✉️ \`${result.topLead.email}\``,
+        },
+      },
+    ],
+  };
+
+  const response = await fetch(webhookUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (response.ok) {
+    console.log(`✅ [Slack] Alert dispatched to #ops-automation`);
+  } else {
+    console.error(`❌ [Slack] Webhook delivery failed: ${response.status}`);
+  }
+}
+
+// Call after each scraping cycle
+await notifySlack({
+  count: 12,
+  source: "Placr Directory Scraper",
+  topLead: {
+    name: "Apex AI Automation Group",
+    email: "sam@apexautomation.ai",
+    category: "Enterprise Workflow & LLM Agents",
+  },
+});
+```
+
+<Tip>
+  Configure both Slack and Telegram for redundancy. Slack is ideal for team-visible channel updates and interactive Block-Kit buttons, while Telegram provides instant mobile push notifications — useful for urgent 2FA challenges when you are away from your desk.
+</Tip>

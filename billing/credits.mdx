@@ -1,0 +1,87 @@
+---
+title: "Understanding and Managing AgyDesk Action Credits"
+sidebarTitle: "Credits"
+description: "Learn how AgyDesk action credits work, what each operation costs, and how to purchase and manage your credit balance across your team."
+---
+
+Credits are AgyDesk's currency for AI-powered and resource-intensive operations. They are completely separate from your subscription — your plan keeps your cloud Chromium pod running 24/7, and credits pay for each automation action your bots perform. This separation means your pod never goes offline due to a low credit balance; only AI operations pause when credits are exhausted.
+
+## Credit Costs
+
+| Action | Credits |
+|---|---|
+| Prompt-to-Bot synthesis (full worker + UI generation) | 50 |
+| Autonomous browser step (click, navigate, form fill) | 1 |
+| Gemini Vision / screen OCR & table extraction | 5 |
+| HeyGen AI avatar video render (4K, personalized) | 150 |
+| ElevenLabs AI voice note dispatch | 25 |
+| Rotating residential proxy bandwidth (1 GB) | 300 |
+
+## Credit Packs
+
+Purchase credits in one-time packs — they never expire and roll over indefinitely. Larger packs give you a significant bonus credit allocation.
+
+<CardGroup cols={3}>
+  <Card title="Boost Pack" icon="bolt">
+    **$20**
+
+    **2,000 credits**
+
+    Great for quick scraping runs and 40+ Prompt-to-Bot syntheses. Ideal for individuals testing new workflows or running low-volume automations.
+  </Card>
+  <Card title="Growth Fleet Pack" icon="chart-line">
+    **$50**
+
+    **6,000 credits** *(+20% bonus)*
+
+    Our most popular pack for active SDRs and e-commerce teams. The bonus credits are added to your balance automatically at checkout.
+  </Card>
+  <Card title="Scale Fleet Pack" icon="rocket">
+    **$100**
+
+    **15,000 credits** *(+50% bonus)*
+
+    Maximum value for high-volume scrapers, AI vision pipelines, and HeyGen video outreach campaigns. Best cost-per-credit across all packs.
+  </Card>
+</CardGroup>
+
+## Buying Credits
+
+<Steps>
+  <Step title="Open your dashboard">
+    Log in at [agydesk.com](https://agydesk.com) and navigate to your dashboard. Click your account avatar in the top-right corner and select **Account**.
+  </Step>
+  <Step title="Go to Credits">
+    In the account panel, select the **Credits** tab. Your current balance is displayed at the top of the page alongside your usage history.
+  </Step>
+  <Step title="Select a credit pack">
+    Choose **Boost**, **Growth Fleet**, or **Scale Fleet** based on your usage needs. The bonus percentage for Growth and Scale packs is displayed on each card.
+  </Step>
+  <Step title="Complete Stripe checkout">
+    Click **Buy Now** on your chosen pack. You will be redirected to a Stripe one-time payment checkout. Credits are added to your balance immediately upon successful payment.
+  </Step>
+</Steps>
+
+## Checking Your Balance
+
+Your current credit balance is always visible in the dashboard header, displayed next to your account avatar. The balance updates in real time as your bots consume credits, so you can monitor usage without navigating away from any dashboard tab.
+
+## Per-User Credit Caps
+
+<Note>
+  Team admins on Pro and Agency plans can set a monthly credit cap per team member in the **Team & RBAC** tab. This prevents any single user or bot identity from exhausting the team's shared credit pool. Caps reset on the first day of each calendar month. The owner's account is exempt from caps by default.
+</Note>
+
+## Frequently Asked Questions
+
+<Accordion title="Do unused credits expire?">
+  No. AgyDesk credits roll over indefinitely and never expire regardless of whether you change plans or pause your subscription. Your balance is always available when you need it.
+</Accordion>
+
+<Accordion title="What happens when I run out of credits?">
+  When your credit balance reaches zero, AI-powered operations pause automatically — this includes Prompt-to-Bot synthesis, Gemini Vision OCR, HeyGen video renders, ElevenLabs voice notes, and proxy bandwidth allocation. Your browser pod continues running normally and standard CDP-based automation that does not consume credits is unaffected. AgyDesk sends a low-credit warning email and dashboard notification when your balance drops below 200 credits so you have time to top up before operations pause.
+</Accordion>
+
+<Accordion title="Can I get a refund on unused credits?">
+  Credit packs are generally non-refundable after purchase. If you have a billing concern or purchased credits in error, contact the AgyDesk support team at support@agydesk.com and the team will review your case. Refund eligibility is handled on a case-by-case basis.
+</Accordion>

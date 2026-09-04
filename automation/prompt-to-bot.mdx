@@ -1,0 +1,179 @@
+---
+title: "Generate Automation Bots with AI: Prompt-to-Bot Guide"
+sidebarTitle: "Prompt-to-Bot"
+description: "Describe your automation in plain English and AgyDesk generates a production TypeScript CDP worker via Gemini 2.5 Flash, Claude 3.7, or GPT-4o."
+---
+
+Prompt-to-Bot is AgyDesk's AI-powered daemon compiler. You describe what you want your automation to do in plain English; AgyDesk uses **Gemini 2.5 Flash** (with Claude 3.7 Sonnet and GPT-4o as automatic fallbacks via OpenRouter) to generate a production TypeScript CDP worker that is ready to run 24/7 the moment synthesis completes. No recording session, no manual coding — just a prompt and a running bot.
+
+## Two Ways to Use Prompt-to-Bot
+
+You can generate bots from the visual dashboard or call the API directly from your own tooling or CI pipeline.
+
+<CardGroup cols={2}>
+  <Card title="Dashboard" icon="browser">
+    Use the **Prompt-to-Bot Engine** tab in your AgyDesk dashboard for a guided, visual experience. Best for one-off bots and quick experiments.
+  </Card>
+  <Card title="API" icon="code">
+    Call `POST /api/agent/synthesize` programmatically to generate workers on demand from scripts, pipelines, or your own application backend.
+  </Card>
+</CardGroup>
+
+## From the Dashboard
+
+<Steps>
+  <Step title="Open the Prompt-to-Bot Engine tab">
+    Log in to [agydesk.com](https://agydesk.com) and navigate to your dashboard. Click the **Prompt-to-Bot Engine** tab in the left sidebar.
+  </Step>
+  <Step title="Write a detailed prompt">
+    Enter a clear, specific description of what you want the bot to do. Be explicit about the target site, the actions to perform, and the data to extract. See [Writing Effective Prompts](#writing-effective-prompts) below for examples and a template.
+  </Step>
+  <Step title="Enter the target URL">
+    Provide the starting URL for the automation — for example, `https://www.amazon.com`. The AI compiler embeds this as the worker's entry-point navigation target.
+  </Step>
+  <Step title="Name your bot">
+    Give the bot a short, kebab-case name such as `amazon-price-watch` or `linkedin-lead-scraper`. This becomes the worker's class name, file name, and export path. Use only lowercase letters, numbers, and hyphens.
+  </Step>
+  <Step title="Click Generate Bot">
+    Click **Generate Bot**. The Gemini 2.5 Flash model compiles your prompt into a TypeScript worker. Synthesis typically completes in **10 – 30 seconds** depending on prompt complexity.
+  </Step>
+  <Step title="Review the generated code">
+    The dashboard displays the full TypeScript source. Verify that the navigation URL, selectors, and extraction logic match your intent. You can copy the code to edit it locally if you need to adjust any selectors.
+  </Step>
+  <Step title="Run the bot">
+    Once you're satisfied with the generated code, run it from your terminal:
+
+    ```bash
+    agydesk run amazon-price-watch
+    ```
+
+    The worker file is already saved to `packages/daemon/src/workers/amazon-price-watch-worker.ts` on your pod.
+  </Step>
+</Steps>
+
+## Via API
+
+Call `POST /api/agent/synthesize` to generate a worker programmatically. Include your prompt, a bot name, and the target URL in the JSON body.
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://agydesk.com/api/agent/synthesize \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "Navigate to amazon.com, search for laptop, wait for results to load, then extract the title, price, and ASIN of the first 10 product cards. Save results as an array of objects.",
+    "botName": "amazon-scraper",
+    "targetUrl": "https://www.amazon.com"
+  }'
+```
+
+```typescript TypeScript
+const response = await fetch("https://agydesk.com/api/agent/synthesize", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    prompt: "Navigate to amazon.com, search for laptop, wait for results to load, then extract the title, price, and ASIN of the first 10 product cards. Save results as an array of objects.",
+    botName: "amazon-scraper",
+    targetUrl: "https://www.amazon.com",
+  }),
+});
+
+const data = await response.json();
+console.log(data.workerPath);  // packages/daemon/src/workers/amazon-scraper-worker.ts
+```
+</CodeGroup>
+
+**Response**
+
+<ResponseField name="success" type="boolean">
+  `true` when the worker was generated and saved successfully.
+</ResponseField>
+<ResponseField name="botName" type="string">
+  The sanitized bot name used as the worker's identifier (e.g. `amazon-scraper`).
+</ResponseField>
+<ResponseField name="workerPath" type="string">
+  Absolute path to the generated TypeScript worker file on the pod.
+</ResponseField>
+<ResponseField name="creditsDeducted" type="number">
+  Always `50` — the flat synthesis credit cost regardless of prompt complexity.
+</ResponseField>
+<ResponseField name="codeSnippet" type="string">
+  The first 500 characters of the generated worker source for a quick preview.
+</ResponseField>
+
+```json
+{
+  "success": true,
+  "botName": "amazon-scraper",
+  "workerPath": "/home/agydesk/packages/daemon/src/workers/amazon-scraper-worker.ts",
+  "creditsDeducted": 50,
+  "message": "Successfully synthesized and deployed 24/7 worker: amazon-scraper",
+  "codeSnippet": "import puppeteer from 'puppeteer';\nimport * as fs from 'fs';\nimport * as path from 'path';\n\n/**\n * AgyDesk Synthesized Autonomous Worker: amazon-scraper\n..."
+}
+```
+
+## Writing Effective Prompts
+
+The quality of the generated worker depends directly on the specificity of your prompt. The AI compiler needs to know the target URL, the sequence of browser actions, what data to collect, and where to save it.
+
+<Accordion title="Prompt template">
+  Use this template as your starting point:
+
+  ```
+  Navigate to [starting URL].
+  [Describe the actions to perform — search queries, clicks, form fills, pagination.]
+  Extract [list the specific fields you want — titles, prices, URLs, IDs, dates].
+  Save results as a JSON array to data/exports/[bot-name].json.
+  Repeat the full cycle every [interval — e.g., 30 minutes].
+  ```
+
+  **Example prompt using the template:**
+
+  ```
+  Navigate to https://news.ycombinator.com/jobs.
+  Wait for the job listings to load.
+  Extract the job title, company name, posting URL, and date for every listing on the page.
+  Follow the "More" pagination link and extract one additional page.
+  Save results as a JSON array to data/exports/hn-jobs.json.
+  Repeat every 15 minutes.
+  ```
+</Accordion>
+
+<Accordion title="Good prompt examples">
+  **Price monitoring:**
+  ```
+  Navigate to https://www.amazon.com/dp/B0CQBM9LZH.
+  Wait for the product page to fully load.
+  Extract the product title, current price (including any sale price), ASIN, and availability status.
+  Save to data/exports/rtx-4090-price.json.
+  Repeat every 10 minutes.
+  ```
+
+  **Lead generation:**
+  ```
+  Navigate to https://www.linkedin.com/search/results/people/?keywords=vp%20of%20engineering&connection=2.
+  Scroll down to load 20 profiles.
+  For each profile card, extract the full name, current job title, company name, and profile URL.
+  Save results as a JSON array to data/exports/linkedin-leads.json.
+  ```
+
+  **Content monitoring:**
+  ```
+  Navigate to https://techcrunch.com.
+  Extract the headline, author, publication date, and article URL for every article visible in the main feed.
+  Save to data/exports/techcrunch-feed.json.
+  Repeat every 60 minutes.
+  ```
+</Accordion>
+
+<Accordion title="Common mistakes to avoid">
+  - **Too vague:** `"Scrape Amazon"` — the compiler has no idea which page, which product, or which fields to extract.
+  - **No target URL:** Always include the full starting URL. The compiler embeds it as the `Page.navigate` target.
+  - **Ambiguous field names:** Say `"extract the numeric price in USD, excluding the currency symbol"` rather than just `"get the price"`.
+  - **Omitting the output format:** Specify `"save as a JSON array"` or `"save as a flat JSON object"` to get clean extraction logic.
+</Accordion>
+
+<Note>
+  Each Prompt-to-Bot synthesis costs **50 credits**, regardless of prompt length or worker complexity. Credits are deducted at the moment the worker file is written to disk. If synthesis fails due to a server error, no credits are charged. See [Credits & Billing](/billing/credits) for pack pricing.
+</Note>
+
+For the full API specification, including authentication headers and error codes, see the [Agent API Reference](/api/agent).

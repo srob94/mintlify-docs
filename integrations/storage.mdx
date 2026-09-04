@@ -1,0 +1,204 @@
+---
+title: "Export Automation Data to S3 or Google Cloud Storage"
+sidebarTitle: "Storage"
+description: "Upload scraped data, screenshots, and exported files from AgyDesk workers to AWS S3 or Google Cloud Storage buckets automatically."
+---
+
+AgyDesk workers can automatically upload scraped data, screenshots, and exported files to AWS S3 or Google Cloud Storage. Configure your cloud storage credentials once in the Integrations Hub and every worker on your pod can stream files to your bucket without any additional setup. This gives you a durable, queryable archive of everything your automation produces — independent of your pod's local storage.
+
+## AWS S3 Setup
+
+<Steps>
+  <Step title="Create an S3 bucket">
+    Log in to the [AWS Console](https://console.aws.amazon.com) and navigate to **S3** → **Create bucket**. Choose a globally unique name (e.g., `agydesk-exports-yourteam`), select your preferred region, and leave **Block Public Access** enabled. Click **Create bucket**.
+  </Step>
+  <Step title="Create an IAM user with S3 write access">
+    Go to **IAM** → **Users** → **Create user**. Name it `agydesk-worker` and click **Next**. Choose **Attach policies directly**, search for **AmazonS3FullAccess**, and attach it. For tighter scoping, create a custom policy that restricts access to your specific bucket ARN with `s3:PutObject`, `s3:GetObject`, and `s3:ListBucket` actions only.
+  </Step>
+  <Step title="Generate an access key">
+    Click on the newly created IAM user, go to the **Security credentials** tab, and click **Create access key**. Select **Application running outside AWS** as the use case. Copy both the **Access Key ID** and **Secret Access Key** — the secret is shown only once.
+  </Step>
+  <Step title="Enter credentials in AgyDesk">
+    In your AgyDesk dashboard, go to **Integrations Hub** → **Google Cloud Storage / AWS S3** → **Connect**. Select **AWS S3**, then enter your **Access Key ID**, **Secret Access Key**, **Bucket Name**, and preferred **Region** (e.g., `us-east-1`).
+  </Step>
+  <Step title="Save and test">
+    Click **Save**. AgyDesk uploads a small test file to verify the credentials and bucket access. A green **Connected** badge confirms the integration is active.
+  </Step>
+</Steps>
+
+## Google Cloud Storage Setup
+
+<Steps>
+  <Step title="Create a GCS bucket">
+    Log in to the [Google Cloud Console](https://console.cloud.google.com), navigate to **Cloud Storage** → **Buckets** → **Create**. Name the bucket (e.g., `agydesk-audit-vault`), select your region, and choose **Standard** storage class. Click **Create**.
+  </Step>
+  <Step title="Create a service account">
+    Go to **IAM & Admin** → **Service Accounts** → **Create Service Account**. Name it `agydesk-storage-writer`. On the permissions step, assign the **Storage Object Creator** role (`roles/storage.objectCreator`). Click **Done**.
+  </Step>
+  <Step title="Generate a JSON key">
+    Click the service account, go to the **Keys** tab, click **Add Key** → **Create new key** → **JSON**. Download the key file and keep it secure.
+  </Step>
+  <Step title="Enter credentials in AgyDesk">
+    In your AgyDesk dashboard, go to **Integrations Hub** → **Google Cloud Storage / AWS S3** → **Connect**. Select **Google Cloud Storage**, enter your **Bucket Name**, and paste the full contents of the downloaded service account JSON key into the **Service Account Key** field.
+  </Step>
+  <Step title="Save and test">
+    Click **Save**. AgyDesk verifies bucket write access and sets the integration to **Connected**.
+  </Step>
+</Steps>
+
+## Uploading from Workers
+
+The following example shows a daemon worker that saves a scraped leads file locally, then uploads it to S3 using the AWS credentials injected from your Integrations Hub configuration:
+
+```typescript
+// workers/s3-export-worker.ts
+// Saves scraped leads to data/exports/ and uploads to S3
+
+import * as fs from "fs";
+import * as path from "path";
+import * as https from "https";
+import * as crypto from "crypto";
+
+interface Lead {
+  name: string;
+  email: string;
+  website: string;
+  category: string;
+  location: string;
+  scrapedAt: string;
+}
+
+async function uploadToS3(
+  filePath: string,
+  bucket: string,
+  key: string,
+  accessKeyId: string,
+  secretAccessKey: string,
+  region: string
+): Promise<void> {
+  const fileContent = fs.readFileSync(filePath);
+  const date = new Date();
+  const dateString = date.toISOString().slice(0, 10).replace(/-/g, "");
+  const amzDate = date.toISOString().replace(/[:-]|\.\d{3}/g, "");
+
+  const contentType = "application/json";
+  const contentHash = crypto
+    .createHash("sha256")
+    .update(fileContent)
+    .digest("hex");
+
+  const host = `${bucket}.s3.${region}.amazonaws.com`;
+  const canonicalRequest = [
+    "PUT",
+    `/${key}`,
+    "",
+    `content-type:${contentType}\nhost:${host}\nx-amz-content-sha256:${contentHash}\nx-amz-date:${amzDate}\n`,
+    "content-type;host;x-amz-content-sha256;x-amz-date",
+    contentHash,
+  ].join("\n");
+
+  const credentialScope = `${dateString}/${region}/s3/aws4_request`;
+  const stringToSign = [
+    "AWS4-HMAC-SHA256",
+    amzDate,
+    credentialScope,
+    crypto.createHash("sha256").update(canonicalRequest).digest("hex"),
+  ].join("\n");
+
+  const hmac = (key: Buffer, data: string) =>
+    crypto.createHmac("sha256", key).update(data).digest();
+  const signingKey = hmac(
+    hmac(
+      hmac(
+        hmac(Buffer.from(`AWS4${secretAccessKey}`), dateString),
+        region
+      ),
+      "s3"
+    ),
+    "aws4_request"
+  );
+  const signature = crypto
+    .createHmac("sha256", signingKey)
+    .update(stringToSign)
+    .digest("hex");
+
+  const authorization = `AWS4-HMAC-SHA256 Credential=${accessKeyId}/${credentialScope}, SignedHeaders=content-type;host;x-amz-content-sha256;x-amz-date, Signature=${signature}`;
+
+  return new Promise((resolve, reject) => {
+    const req = https.request(
+      {
+        hostname: host,
+        path: `/${key}`,
+        method: "PUT",
+        headers: {
+          "Content-Type": contentType,
+          "Content-Length": fileContent.byteLength,
+          "x-amz-content-sha256": contentHash,
+          "x-amz-date": amzDate,
+          Authorization: authorization,
+        },
+      },
+      (res) => {
+        if (res.statusCode === 200) {
+          console.log(`✅ [S3] Uploaded s3://${bucket}/${key}`);
+          resolve();
+        } else {
+          reject(new Error(`S3 upload failed with status ${res.statusCode}`));
+        }
+      }
+    );
+    req.on("error", reject);
+    req.write(fileContent);
+    req.end();
+  });
+}
+
+// ── Main export cycle ──────────────────────────────────────────────────────
+
+const leads: Lead[] = [
+  {
+    name: "OmniGrowth Media Labs",
+    email: "partnerships@omnigrowth.media",
+    website: "https://omnigrowth.media",
+    category: "DTC Retention & Klaviyo Agency",
+    location: "Austin, TX",
+    scrapedAt: new Date().toISOString(),
+  },
+  {
+    name: "Apex AI Automation Group",
+    email: "sam@apexautomation.ai",
+    website: "https://apexautomation.ai",
+    category: "Enterprise Workflow & LLM Agents",
+    location: "New York, NY",
+    scrapedAt: new Date().toISOString(),
+  },
+];
+
+// 1. Save locally to pod volume as primary store
+const exportDir = path.resolve(process.cwd(), "data/exports");
+if (!fs.existsSync(exportDir)) fs.mkdirSync(exportDir, { recursive: true });
+
+const localPath = path.join(exportDir, "leads.json");
+fs.writeFileSync(localPath, JSON.stringify(leads, null, 2), "utf-8");
+console.log(`💾 [Export] Saved ${leads.length} leads to ${localPath}`);
+
+// 2. Upload to S3 using credentials from Integrations Hub
+const bucket = process.env.S3_BUCKET_NAME!;
+const region = process.env.S3_REGION ?? "us-east-1";
+const accessKeyId = process.env.AWS_ACCESS_KEY_ID!;
+const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY!;
+
+const s3Key = `exports/${new Date().toISOString().slice(0, 10)}/leads.json`;
+
+await uploadToS3(localPath, bucket, s3Key, accessKeyId, secretAccessKey, region);
+```
+
+## Local Export Fallback
+
+<Note>
+  All daemon workers automatically save output data to `data/exports/` on the pod's persistent volume as a local fallback, regardless of whether a cloud storage integration is connected. This directory is preserved across pod restarts and plan changes. Files saved here are accessible via the **Cloud Settings** → **Volume Browser** panel in your dashboard.
+</Note>
+
+<Tip>
+  If you are already running on GCP BYOC, use Google Cloud Storage instead of S3. Your pod's service account can be granted direct bucket access, simplifying IAM management — you can reuse the same service account JSON key for both pod provisioning and storage writes.
+</Tip>
